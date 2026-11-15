@@ -66,6 +66,8 @@ python3 quality_gate.py --profile release --scope backend
 
 完整离线门禁耗时较长；日常修改先运行清单中对应的检查。`live` 检查连接真实服务或模型，需要自行准备隔离环境，不包含在默认离线验证中。
 
+部分 `release` 检查依赖 POSIX 符号链接。例如 `test_runner_agent_bootstrap.py` 验证 Linux 安装脚本 `installers/runner-install.sh` 的内嵌 Python 引导阶段，会在 `agent-runtimes/npm/bin` 下创建符号链接；这类 POSIX 专用检查在 Windows 上会自动跳过。需要完整发布验证时，请在 Linux、WSL2 或 Linux 容器中运行 `python3 quality_gate.py --profile release --scope backend`。
+
 ## 桌面客户端
 
 桌面是 Electron + 原生 HTML/CSS/JavaScript，管理页面是独立的 React 应用。主进程位于 `main.js` 和 `main/`，受限 IPC 桥位于 `preload.js`，界面主要位于 `desk.html`、`core/` 和 `components/`。

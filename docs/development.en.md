@@ -66,6 +66,8 @@ python3 quality_gate.py --profile release --scope backend
 
 The full offline gate takes time. Start with the registered checks relevant to your change. `live` checks connect to real services or models and require your own isolated environment; they are outside default offline validation.
 
+Some `release` checks rely on POSIX symbolic links. For example, `test_runner_agent_bootstrap.py` exercises the embedded Python bootstrap in the Linux installer `installers/runner-install.sh`, which creates symbolic links under `agent-runtimes/npm/bin`; these POSIX-only checks are skipped automatically on Windows. Run `python3 quality_gate.py --profile release --scope backend` on Linux, WSL2, or a Linux container for complete release validation.
+
 ## Desktop client
 
 The desktop uses Electron with native HTML/CSS/JavaScript; the React management UI is a separate application. Main-process code lives in `main.js` and `main/`, the restricted IPC bridge in `preload.js`, and UI code primarily in `desk.html`, `core/`, and `components/`.

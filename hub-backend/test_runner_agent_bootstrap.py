@@ -16,6 +16,8 @@ INSTALLER = Path(__file__).parent / 'installers/runner-install.sh'
 BOOTSTRAP = INSTALLER.read_text(encoding='utf-8').split("<<'BOOTSTRAP_PY'\n", 1)[1].split('\nBOOTSTRAP_PY', 1)[0]
 
 
+@unittest.skipUnless(os.name == 'posix',
+                     'Exercise the POSIX runner-install.sh bootstrap; Linux CI covers it')
 class AgentBootstrapTests(unittest.TestCase):
     def run_stage(self, root, *, existing=False, corrupt=False, fail_install=False,
                   collision=False, fail_ready=False, fail_publish=False, execute_denied=False):
@@ -242,7 +244,7 @@ class AgentBootstrapTests(unittest.TestCase):
                 setup.start_install.assert_not_called()
 
     def test_config_rerun_preserves_existing_identity_options_and_custom_paths(self):
-        source = INSTALLER.read_text()
+        source = INSTALLER.read_text(encoding='utf-8')
         writer = source.split('"$PY" -c \'\n', 1)[1].split("\n' \"$HUB\"", 1)[0]
         with tempfile.TemporaryDirectory() as temp:
             cfg = Path(temp) / 'runner.json'
