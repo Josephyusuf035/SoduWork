@@ -397,9 +397,10 @@ async function resolve(options) {
     if (dir) capabilityDirs.push(dir);
   });
   // A default alias must never make an explicitly selected/foundation path optional.
+  const realpath = fs.realpathSync.native || fs.realpathSync;
   const pathKey = dir => {
     let target = path.resolve(dir);
-    try { target = fs.realpathSync(target); } catch { /* Loader reports missing paths. */ }
+    try { target = realpath(target); } catch { /* Loader reports missing paths. */ }
     return process.platform === 'win32' ? target.toLowerCase() : target;
   };
   const requiredDirs = new Set([...capabilityDirs, ...authorizedExplicit

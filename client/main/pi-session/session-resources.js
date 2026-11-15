@@ -10,7 +10,7 @@ const sessionHelpers = require('./session-helpers');
 function canonicalPath(value) {
   if (!value) return '';
   let resolved = path.resolve(String(value));
-  try { resolved = fs.realpathSync(resolved); } catch (error) { /* Missing paths are diagnosed below. */ }
+  try { resolved = (fs.realpathSync.native || fs.realpathSync)(resolved); } catch (error) { /* Missing paths are diagnosed below. */ }
   return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
