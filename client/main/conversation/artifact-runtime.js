@@ -275,9 +275,11 @@ function serve(record, request, response) {
     if (!match || (!match[1] && !match[2]) || found.stat.size <= 0) {
       response.writeHead(416, { 'Content-Range': 'bytes */' + found.stat.size, 'Accept-Ranges': 'bytes' }); response.end(); return;
     }
-    if (!match[1]) start = Math.max(0, found.stat.size - Math.max(1, Number(match[2]) || 0));
-    else start = Number(match[1]);
-    end = match[2] ? Math.min(found.stat.size - 1, Number(match[2])) : found.stat.size - 1;
+    if (!match[1]) start = Math.max(0, found.stat.size - Number(match[2]));
+    else {
+      start = Number(match[1]);
+      end = match[2] ? Math.min(end, Number(match[2])) : end;
+    }
     if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start > end || start >= found.stat.size) {
       response.writeHead(416, { 'Content-Range': 'bytes */' + found.stat.size, 'Accept-Ranges': 'bytes' }); response.end(); return;
     }
