@@ -25,6 +25,8 @@
 
 启动器会在专用 `venv/` 中安装 Hub 和 Runner 两套依赖，检查 Runner 所需的 Python 模块，并把同一解释器交给桌面端。使用此入口无需另建 `hub-backend/.venv`。如果 Agent 管理提示源码 Runner 环境不完整，请退出源码启动会话后重跑同一入口，保留原数据目录。
 
+安装期间的 npm 与 pip 缓存写入数据目录下的 `cache/`，因此 `--data-dir` 指向另一个磁盘时，下载缓存不会留在系统盘。备份或迁移时可以跳过 `cache/`，它是可再生的；如已自行设置 `npm_config_cache` 或 `PIP_CACHE_DIR`，启动器沿用你的设置。
+
 Windows 桌面启动还会在本实例的应用副本中准备并校验命令运行环境（PortableGit），供 Agent 使用 Bash、Git 和常用命令。无需单独安装 Git 或配置 WSL。后续启动会保留运行环境和下载缓存，并再次检查可用性；准备失败时查看 `startup.log`，修复网络后重跑同一入口。
 
 ## 怎么判断启动成功

@@ -918,6 +918,50 @@ class LocalStartupTests(unittest.TestCase):
                 with self.assertRaisesRegex(build.StartupError, 'shell fixture failed'):
                     build.prepare_desktop(self.state, self.state / 'startup.log')
 
+    def test_prepare_keeps_package_caches_inside_the_data_directory(self):
+        state = Path(self.temp.name) / 'cache-state'
+        with patch.object(build.os, 'name', 'nt'), \
+                patch.dict(os.environ, {'PATH': os.environ.get('PATH', '')}, clear=True):
+            environment = build.prepare_environment(state)
+        self.assertEqual(environment['npm_config_cache'], str(state / 'cache/npm'))
+        self.assertEqual(environment['PIP_CACHE_DIR'], str(state / 'cache/pip'))
+        self.assertEqual(environment['PATH'], os.environ['PATH'])
+        # TMPDIR is a POSIX convention; on Windows TEMP/TMP stay inherited.
+        self.assertNotIn('TMPDIR', environment)
+
+    def test_prepare_sets_tmpdir_on_posix(self):
+        state = Path(self.temp.name) / 'cache-state'
+        with patch.object(build.os, 'name', 'posix'), patch.dict(os.environ, {}, clear=True):
+            environment = build.prepare_environment(state)
+        self.assertEqual(environment['TMPDIR'], str(state / 'cache/tmp'))
+
+    def test_prepare_never_overrides_an_explicit_cache_choice(self):
+        state = Path(self.temp.name) / 'cache-state'
+        chosen = {'npm_config_cache': '/operator/npm', 'PIP_CACHE_DIR': '/operator/pip',
+                  'TMPDIR': '/operator/tmp'}
+        with patch.dict(os.environ, chosen, clear=True):
+            environment = build.prepare_environment(state)
+        lowered = {key.lower(): value for key, value in environment.items()}
+        for key, value in chosen.items():
+            self.assertEqual(lowered[key.lower()], value)
+
+    def test_prepare_passes_isolated_caches_to_every_install_command(self):
+        state = Path(self.temp.name) / 'prepare-state'
+        state.mkdir()
+        with patch.object(build, 'check_dependencies', return_value=('node', 'npm')), \
+                patch.object(build, 'sync_source'), patch.object(build, 'shutil'), \
+                patch.object(build, 'source_files', return_value=[]), \
+                patch.object(build, 'digest_files', return_value='digest'), \
+                patch.object(build, 'read_stamp', return_value=None), \
+                patch.object(build, 'verify_runner_environment'), \
+                patch.object(build, 'run') as run:
+            build.prepare(state, state / 'startup.log')
+        installs = [call for call in run.call_args_list if 'env' in call.kwargs]
+        self.assertEqual(len(installs), 3)
+        self.assertTrue(any('pip' in call.args[0] for call in installs))
+        for call in installs:
+            self.assertEqual(call.kwargs['env'], build.prepare_environment(state))
+
     def test_cached_nonwindows_desktop_does_not_prepare_windows_shell(self):
         with patch.object(sys, 'platform', 'darwin'):
             client = self.cached_desktop()
