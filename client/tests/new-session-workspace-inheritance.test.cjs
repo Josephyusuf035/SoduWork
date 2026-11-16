@@ -1,10 +1,9 @@
 'use strict';
 /*
- * New drafts inherit the last local or explicitly selected workspace, never
- * remote output caches. The draft picker opens at the last selected location.
- * Once a conversation starts, its archive owns the working directory. Stale
- * renderer overrides cannot relocate it; missing-path recovery remains intact.
- * Existing migrated archives retain their persisted location on reopen.
+ * New drafts start in the default workspace unless an entry explicitly selects
+ * a directory. Remote output caches and prior local conversations never leak
+ * into a fresh conversation. Once a conversation starts, its archive owns the
+ * working directory; existing migrated archives retain their location on reopen.
  */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -53,15 +52,15 @@ function bootShell({ recent = { ok: true, dir: '', name: '' } } = {}) {
 }
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
-test('纯新对话入口沿用活动会话工作目录，项目归属仍不继承', () => {
+test('纯新对话入口不沿用活动会话工作目录，项目归属仍不继承', () => {
   const { shell } = bootShell();
   shell.setChats([{ id: 'c1', cwd: 'D:/work/soduwork', workspaceName: 'soduwork',
     sidebarProjectId: 'proj-1', sidebarProjectName: '客户360' }]);
   shell.setActiveChat('c1');
   const payload = JSON.parse(JSON.stringify(shell.newSessionPayload()));
-  assert.equal(payload.cwd, 'D:/work/soduwork');
-  assert.equal(payload.workspaceLabel, 'soduwork');
-  assert.equal(payload.workspaceSource, 'last-session');
+  assert.equal(payload.cwd, undefined);
+  assert.equal(payload.workspaceLabel, undefined);
+  assert.equal('workspaceSource' in payload, false);
   assert.equal(payload.newSession, true);
   assert.equal('sidebarProjectId' in payload, false);
   assert.equal('sidebarProjectName' in payload, false);
@@ -77,24 +76,23 @@ test('云端会话的目录不延续（远端缓存路径不得串进本地草�
   assert.equal('workspaceSource' in payload, false);
 });
 
-test('云端会话不污染目录，但最近手选目录仍可作冷启动兜底', async () => {
+test('云端会话和最近手选目录都不污染纯新对话', async () => {
   const { shell } = bootShell({ recent: { ok: true, dir: 'D:/work/local', name: 'local' } });
   shell.setChats([{ id: 'c2', cloud: true, cwd: 'C:/cache/remote-only', workspaceName: '云端' }]);
   shell.setActiveChat('c2');
   shell.refreshRecentWorkspace();
   await flush();
   const payload = shell.newSessionPayload();
-  assert.equal(payload.cwd, 'D:/work/local');
-  assert.equal(payload.workspaceSource, 'recent');
+  assert.equal(payload.cwd, undefined);
+  assert.equal('workspaceSource' in payload, false);
 });
 
-test('冷启动沿用最近一次手选目录（主进程已校验目录仍存在）', async () => {
+test('冷启动使用默认工作区，不沿用最近一次手选目录', async () => {
   const { shell } = bootShell({ recent: { ok: true, dir: 'D:/work/soduwork', name: 'soduwork' } });
   shell.setActiveChat('');
   shell.refreshRecentWorkspace();
   await flush();
-  assert.deepEqual(JSON.parse(JSON.stringify(shell.newSessionPayload())),
-    { cwd: 'D:/work/soduwork', workspaceLabel: 'soduwork', workspaceSource: 'recent', newSession: true });
+  assert.deepEqual(JSON.parse(JSON.stringify(shell.newSessionPayload())), { newSession: true });
 });
 
 test('最近目录已失效（主进程返回空）时不兜底，回落默认工作区', async () => {
@@ -137,7 +135,7 @@ test('newSessionWorkspace 透传目录来源且显式入口清空残留；归属
   assert.equal(cleared.workspaceSource, '');
 });
 
-test('真实调用序：纯入口 payload 携带沿用目录，新会话草稿直接落到该目录', () => {
+test('真实调用序：纯入口 payload 使用默认工作区，新会话草稿不继承旧目录', () => {
   const { shell } = bootShell({ recent: { ok: true, dir: 'D:/work/soduwork', name: 'soduwork' } });
   shell.setChats([{ id: 'c1', cwd: 'D:/work/soduwork', workspaceName: 'soduwork' }]);
   shell.setActiveChat('c1');
@@ -145,10 +143,10 @@ test('真实调用序：纯入口 payload 携带沿用目录，新会话草稿�
   vm.runInNewContext(read('components/panels/compose-surface.js'), { window }, { filename: 'compose-surface.js' });
   const next = window.ComposeSurface.newSessionWorkspace(
     { dir: 'old', name: '旧目录', direct: true }, shell.newSessionPayload());
-  assert.equal(next.dir, 'D:/work/soduwork');
-  assert.equal(next.name, 'soduwork');
-  assert.equal(next.direct, true);
-  assert.equal(next.workspaceSource, 'last-session');
+  assert.equal(next.dir, '');
+  assert.equal(next.name, '默认工作区');
+  assert.equal(next.direct, false);
+  assert.equal(next.workspaceSource, '');
   assert.equal(next.projectId, '');
 });
 

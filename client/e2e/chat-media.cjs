@@ -144,7 +144,7 @@ if (typeof electron === 'string') {
     await check('sidebar inline media and extra JSON escaping render while surrounding prose and ordinary code stay intact', async () => {
       const payload = JSON.stringify({ type: 'video', items: [image('video?sidebar=1')] });
       for (const value of [payload, payload.replaceAll('"', '\\"')]) {
-      await show('Before `media-cards ' + value + '` after.');
+        await show('Before `media-cards ' + value + '` after.');
         await until('list.querySelector("video")?.readyState>=2');
         assert.equal(await run('list.querySelectorAll(".nmedia-group").length'), 1);
         assert(await run('list.textContent.includes("Before") && list.textContent.includes("after.")'));
