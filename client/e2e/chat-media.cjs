@@ -79,7 +79,7 @@ if (typeof electron === 'string') {
     }
     await run(`window.ctx={_ref:'media-a',esc:s=>String(s),_liveTextKey:'1:0'};window.md=ChatMarkdown.create(ctx,()=>{});
       window.list=document.getElementById('list');window.paint=source=>{ChatDomPatch.patchList(list,'<div class="nmsg ai" data-chat-node="message:1" data-message-owner="1"><div class="ntext">'+md.rich(source)+'</div></div>');ChatMedia.hydrate(list)};void 0;`);
-    const block = (type, items) => '```soduwork-media\n' + JSON.stringify({ type, items }) + '\n```';
+    const block = (type, items) => '```media-cards\n' + JSON.stringify({ type, items }) + '\n```';
     const image = (name, title = name) => ({ url: origin + '/' + name, title });
     const show = source => run('paint(' + JSON.stringify(source) + ');void 0;');
     await check('ordinary links, Markdown tracking images and raw video stay inert', async () => {
@@ -144,16 +144,16 @@ if (typeof electron === 'string') {
     await check('sidebar inline media and extra JSON escaping render while surrounding prose and ordinary code stay intact', async () => {
       const payload = JSON.stringify({ type: 'video', items: [image('video?sidebar=1')] });
       for (const value of [payload, payload.replaceAll('"', '\\"')]) {
-        await show('Before `soduwork-media ' + value + '` after.');
+      await show('Before `media-cards ' + value + '` after.');
         await until('list.querySelector("video")?.readyState>=2');
         assert.equal(await run('list.querySelectorAll(".nmedia-group").length'), 1);
         assert(await run('list.textContent.includes("Before") && list.textContent.includes("after.")'));
         assert.equal(await run('list.querySelectorAll("p .nmedia-group").length'), 0);
         assert(await run('list.querySelector(".nmedia-video").getBoundingClientRect().width<=360.1'));
       }
-      await show('```javascript\nsoduwork-media ' + payload + '\n```');
+      await show('```javascript\nmedia-cards ' + payload + '\n```');
       assert.equal(await run('list.querySelectorAll(".nmedia-group").length'), 0);
-      await show('`soduwork-media {"type":"video","items":[{"url":"file:///private.mp4"}]}`');
+      await show('`media-cards {"type":"video","items":[{"url":"file:///private.mp4"}]}`');
       assert.equal(await run('list.querySelectorAll(".nmedia-group").length'), 0);
     });
     await check('real video decodes, autoplays muted and loops without native controls or rounded corners', async () => {

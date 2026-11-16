@@ -446,7 +446,7 @@
     return card;
   }
   function localImageDeclaration(code, files) {
-    if (code.className && !code.classList.contains('language-soduwork-media') &&
+    if (code.className && !code.classList.contains('language-media-cards') &&
         !code.classList.contains('language-json')) return null;
     const source = code.textContent.trim();
     if (!source.startsWith('{') || source.length > 4096) return null;

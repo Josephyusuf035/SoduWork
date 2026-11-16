@@ -40,14 +40,14 @@
     return figure;
   }
   function prepare(html, scope) {
-    if (!html.includes('soduwork-media')) return html;
+    if (!html.includes('media-cards')) return html;
     // The Markdown owner has already sanitized this HTML. Parse it in an inert
     // document; construct every new media node with DOM/text APIs below.
     const root = new DOMParser().parseFromString(html, 'text/html').body;
     root.querySelectorAll('code').forEach(code => {
       const fenced = code.parentElement.tagName === 'PRE';
-      if (fenced && !code.classList.contains('language-soduwork-media')) return;
-      const inline = !fenced && code.textContent.match(/^soduwork-media\s+([\s\S]+)$/);
+      if (fenced && !code.classList.contains('language-media-cards')) return;
+      const inline = !fenced && code.textContent.match(/^media-cards\s+([\s\S]+)$/);
       if (!fenced && !inline) return;
       // JSON only: never execute markup, scripts or model-provided styles.
       const data = declaration(fenced ? code.textContent : inline[1]);
