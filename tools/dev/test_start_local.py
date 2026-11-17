@@ -120,6 +120,32 @@ class LocalStartupTests(unittest.TestCase):
                 with self.subTest(version=version), patch.object(build.subprocess, 'check_output', return_value=version):
                     self.assertEqual(len(build.check_dependencies()), 2)
 
+    def test_corrupt_node_binary_raises_startup_error_not_raw_oserror(self):
+        # A corrupt or non-executable node must surface as a StartupError, never a raw OSError (#265).
+        with patch.object(build.shutil, 'which', side_effect=lambda name: name), \
+                patch.object(build.subprocess, 'check_output',
+                             side_effect=OSError(8, 'Exec format error')), \
+                self.assertRaisesRegex(build.StartupError, 'could not be executed'):
+            build.check_dependencies()
+
+    def test_corrupt_npm_binary_fails_preflight_instead_of_reporting_ready(self):
+        # npm must be execution-probed like node; a corrupt npm must not pass --check (#267).
+        responses = {'node': 'v22.23.4', 'npm': OSError(8, 'Exec format error'), 'calls': 0}
+
+        def probe(binary, *_args, **_kwargs):
+            key = 'node' if responses['calls'] == 0 else 'npm'
+            responses['calls'] += 1
+            value = responses[key]
+            if isinstance(value, Exception):
+                raise value
+            return value
+
+        with patch.object(build.shutil, 'which', side_effect=lambda name: name), \
+                patch.object(build.subprocess, 'check_output', side_effect=probe), \
+                self.assertRaisesRegex(build.StartupError, 'could not be executed'):
+            build.check_dependencies()
+        self.assertEqual(responses['calls'], 2, 'npm must be probed after the node probe')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="soduwork-start-unit-")
         self.addCleanup(self.temp.cleanup)

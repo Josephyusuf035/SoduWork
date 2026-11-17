@@ -115,8 +115,16 @@ def check_dependencies() -> tuple[str, str]:
         parsed = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?", version)
         if parsed is None or tuple(map(int, parsed.groups())) < (22, 19, 0):
             raise ValueError(version)
-    except (ValueError, subprocess.SubprocessError) as exc:
+    except ValueError as exc:
         raise StartupError("Node.js 22.19 or newer is required. Check node --version.") from exc
+    except (subprocess.SubprocessError, OSError) as exc:
+        raise StartupError("The node binary exists but could not be executed; check that it is intact and runnable.\n"
+                           "node 命令存在但无法执行，请检查其是否完整、可运行。") from exc
+    try:
+        subprocess.check_output([npm, "--version"], text=True, timeout=15, **spawn_options()).strip()
+    except (subprocess.SubprocessError, OSError) as exc:
+        raise StartupError("The npm binary exists but could not be executed; check that it is intact and runnable.\n"
+                           "npm 命令存在但无法执行，请检查其是否完整、可运行。") from exc
     return node, npm
 
 
