@@ -102,6 +102,24 @@
     row.binding = normalizeCombo(state.draft); state.editingId = ''; state.draft = '';
     persist(); render(); focusRow(row.id); status(t('已保存“{title}”的快捷键。', { title: t(row.title) }), 'success');
   }
+  // 中文：应用内冲突与系统注册冲突分别检测；冲突时不抢占其他动作，按钮截图仍然可用。
+  // English: Check app bindings and OS registration separately; never steal conflicting actions, and retain button capture.
+  async function checkScreenshotShortcut() {
+    const rows = state?.rows || configuredRows();
+    const conflict = rows.find(row => row.id !== 'capture-window' && normalizeCombo(row.binding) === 'Alt+A');
+    if (conflict) { notify('截图快捷键 Alt+A 与“' + t(conflict.title) + '”冲突，请在快捷键设置中调整。', 'error'); return false; }
+    try {
+      const result = await host.soduWorkAPI?.screenshotShortcutStatus?.();
+      if (result && (!result.ok || !result.registered)) {
+        notify('截图快捷键 Alt+A 注册失败，可能被其他应用占用；仍可点击剪刀截图。', 'error'); return false;
+      }
+    } catch (_) { notify('无法检测 Alt+A 快捷键状态，仍可点击剪刀截图。', 'error'); return false; }
+    return true;
+  }
+  async function captureFromShortcut() {
+    if (state?.editingId || !await checkScreenshotShortcut()) return;
+    await capture('edit');
+  }
   async function capture(mode, options) {
     if (capturing) return null;
     capturing = true;
@@ -174,6 +192,9 @@
       root.querySelector('[data-shortcut-row="' + state.editingId + '"] [data-shortcut-recorder]')?.focus(); return;
     }
     if (event.defaultPrevented) return;
+    if (comboFromKeyEvent(event) === 'Alt+A') {
+      event.preventDefault(); event.stopImmediatePropagation(); void captureFromShortcut(); return;
+    }
     const combo = comboFromKeyEvent(event), row = state.rows.find(item => item.binding && item.binding === combo);
     if (!row || findConflicts(state.rows, row.id).length || menu()?.usesNativeAccelerator?.(row.id)) return;
     if (row.id === 'focus-search' && !searchInput()) return;
@@ -225,12 +246,14 @@
     root = document.getElementById('shortcutsPanel');
     state = { rows: configuredRows(), query: '', editingId: '', draft: '' };
     bind(); syncMenu();
+    host.soduWorkAPI?.onScreenshotShortcut?.(() => { void captureFromShortcut(); });
+    void checkScreenshotShortcut();
   }
   host.openShortcutSettings = open; host.closeShortcutSettings = close;
   host.addEventListener('soduwork-locale-change', () => { render(); status(); });
   host.addEventListener('soduwork-store-hydrated', () => { if (state) { state.rows = configuredRows(); syncMenu(); render(); } });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-  Object.assign(api, { open, close, capture, getRows: () => (state?.rows || configuredRows()).map(row => ({ ...row })),
+  Object.assign(api, { open, close, capture, checkScreenshotShortcut, getRows: () => (state?.rows || configuredRows()).map(row => ({ ...row })),
     execute: id => { const row = (state?.rows || configuredRows()).find(row => row.id === id); if (row) execute(row); },
     getBinding: id => (state?.rows || configuredRows()).find(row => row.id === id)?.binding || '', isRecording: () => !!state?.editingId });
   return api;

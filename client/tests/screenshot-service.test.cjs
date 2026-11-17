@@ -59,6 +59,7 @@ function fixture(options = {}) {
   const nativeImage = { createFromBuffer(bytes) { return { isEmpty: () => false, toPNG: () => bytes,
     getSize: () => ({ width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) }) }; } };
   const service = create({ app: { getAppPath: () => root, isReady: () => true }, BrowserWindow: Window,
+    globalShortcut: options.globalShortcut,
     ipcMain: { handle: (name, fn) => handlers.set(name, fn), removeHandler: name => handlers.delete(name) }, screen,
     desktopCapturer: { async getSources(request) {
       captures.push(request);
@@ -345,4 +346,20 @@ test('Electron 44 rejected clipboard write preserves annotations and permits ano
   assert.equal(overlay.destroyed, false); options.clipFailure = false;
   assert.deepEqual(await f.call('screenshot-finish', overlay, { action: 'copy', dataUrl: png() }), { ok: true });
   await pending;
+});
+
+test('Alt+A registration failure is reported without disabling capture and is restricted to workspace frames', t => {
+  const f = fixture({ globalShortcut: { register: () => false } }); t.after(() => f.service.dispose());
+  assert.deepEqual(f.call('screenshot-shortcut-status'), { ok: true, registered: false });
+  const remote = new f.owner.constructor(); remote.webContents.url = 'https://example.test'; remote.webContents.mainFrame.url = remote.webContents.url;
+  assert.equal(f.call('screenshot-shortcut-status', remote).ok, false);
+});
+test('Alt+A registers exactly once, targets the workspace and unregisters only its owned key', () => {
+  let handler; const released = [], sent = [];
+  const f = fixture({ globalShortcut: { register: (key, callback) => { assert.equal(key, 'Alt+A'); handler = callback; return true; }, unregister: key => released.push(key) } });
+  f.owner.constructor.getFocusedWindow = () => f.owner;
+  f.owner.webContents.send = channel => sent.push(channel);
+  handler(); assert.deepEqual(sent, ['screenshot-shortcut-trigger']);
+  assert.equal(f.call('screenshot-shortcut-status').registered, true);
+  f.service.dispose(); f.service.dispose(); assert.deepEqual(released, ['Alt+A']);
 });

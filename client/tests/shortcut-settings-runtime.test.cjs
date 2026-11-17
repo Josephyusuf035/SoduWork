@@ -57,6 +57,7 @@ function fixture(options = {}) {
     },
     petSay: message => notifications.push(message),
     soduWorkAPI: {
+      screenshotShortcutStatus: options.shortcutStatus,
       async startScreenshot(input) { screenEdits.push(input); return options.editScreen ? options.editScreen() : { ok: true, action: 'copy' }; },
       async capturePage() { captures.push(true); return options.capture ? options.capture() : options.dataUrl || png; },
       async setWindowShortcuts(payload) { nativeSync.push(payload); return { ok: true }; },
@@ -471,4 +472,20 @@ test('focus search skips hidden and disabled inputs and does not consume unavail
   assert.equal(f.press('Ctrl+K').defaultPrevented, true); assert.equal(visible.focused, true);
   assert.equal(hidden.focused, undefined); assert.equal(disabled.focused, undefined); visible.hidden = true;
   assert.equal(f.press('Ctrl+K').defaultPrevented, false);
+});
+
+test('Alt+A opens annotation capture and app conflicts show a notice instead of executing another action', async () => {
+  const f = fixture(); f.key({ altKey: true, key: 'a', code: 'KeyA' }); await settle();
+  assert.equal(f.screenEdits.length, 1);
+  const conflict = fixture({}); conflict.api.open();
+  conflict.click('shortcutEdit', 'new-chat'); conflict.key({altKey:true,key:'a',code:'KeyA',target:conflict.recorder}); conflict.click('shortcutSave','new-chat'); conflict.api.close();
+  conflict.key({altKey:true,key:'a',code:'KeyA'}); await settle();
+  assert.equal(conflict.screenEdits.length, 0);
+  assert.ok(conflict.notifications.some(text => text.includes('冲突')));
+});
+test('OS shortcut registration failure gives a light notice and keeps button capture usable', async () => {
+  const f = fixture({shortcutStatus:async()=>({ok:true,registered:false})}); await settle();
+  assert.equal(await f.api.checkScreenshotShortcut(), false);
+  assert.ok(f.notifications.some(text=>text.includes('注册失败')));
+  await f.api.capture('edit'); assert.equal(f.screenEdits.length, 1);
 });

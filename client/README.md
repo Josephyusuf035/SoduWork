@@ -6,6 +6,8 @@ Command examples use `sh start.sh` on macOS/Linux. On Windows, use `.\start.cmd`
 
 The desktop uses Electron and native HTML/CSS/JavaScript. The React management UI is a separate application.
 
+The scissors button before the model selector opens region capture with pen, shapes, arrows, text and mosaic annotations. Alt+A opens the same editor. After copying, press Ctrl+V (Windows/Linux) or Command+V (macOS) in the composer to attach the screenshot. App binding conflicts or failed system shortcut registration show a lightweight notice; the button remains available.
+
 ## Source map
 
 | Location | Responsibility |

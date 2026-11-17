@@ -308,6 +308,12 @@
     });
   }
 
+  // 中文：主页与会话使用同一小剪刀入口，复用已有标注编辑器及 PNG 剪贴板链路。
+  // English: Home and chat share a scissors control backed by the existing annotation editor and PNG clipboard flow.
+  function screenshotButton(id) {
+    return '<button type="button" class="wc-capture" id="' + esc(id) + '" title="截图与标注 (Alt+A)" aria-label="截图与标注 (Alt+A)">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m8.2 8.2 12.8 12.8M8.2 15.8 21 3M14 10l-3 3"/></svg></button>';
+  }
   function screenshotRow(id) {
     return '<div class="wc-screenshot-row"><button type="button" class="wc-more-row" id="' + esc(id) + '">' + ICONS.screenshot +
       '<span><b>截图与标注</b><i>框选屏幕，编辑后粘贴到对话</i></span></button>' +
@@ -323,9 +329,12 @@
       button.disabled = true;
       if (hideButton) hideButton.disabled = true;
       try {
-        close();
+        close?.();
         // Wait for the hidden menu to paint before the desktop frame is frozen.
         await new Promise(resolve => global.requestAnimationFrame(() => global.requestAnimationFrame(resolve)));
+        // 中文：按钮也提示 Alt+A 的冲突，但不因此阻止手动截图；两种入口独立可用。
+        // English: Report Alt+A conflicts here too, but keep manual capture usable independently.
+        await global.ShortcutSettings?.checkScreenshotShortcut?.();
         if (!global.ShortcutSettings?.capture) throw new Error('截图功能尚未就绪，请稍后重试');
         await global.ShortcutSettings.capture('edit', { hideOwner });
       } catch (error) { global.petSay?.(String(error?.message || error || '截图暂时不可用')); }
@@ -440,7 +449,7 @@
       afterInput: syntaxHint() + (global.WorkIntent ? WorkIntent.rail('nchat') : ''),
       tools: '<input type="file" id="nchatFile" multiple hidden>' + more + executionMode('data-chat-execution'),
       sendId: 'nchatSend', sendClass: 'nsend', sendTitle: '发送', context,
-      actions: (meta ? meta.outerHTML : '') + '<div class="nmodel" id="nchatModel">' +
+      actions: (meta ? meta.outerHTML : '') + screenshotButton('nchatCapture') + '<div class="nmodel" id="nchatModel">' +
         '<button type="button" class="nmodel-button" aria-haspopup="dialog" aria-expanded="false" aria-label="选择会话模型">' +
         '<svg class="nmodel-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9zM4.5 7.8l7.5 4.3 7.5-4.3M12 12.1V21"/></svg><span>选择模型</span><i class="nmodel-thinking-dot" aria-hidden="true"></i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>' +
         '<div class="nmodel-pop" role="dialog" aria-label="切换模型" hidden></div></div>' +
@@ -482,6 +491,7 @@
       closeMore(); if (input) input.click();
     });
     bindScreenshot(next && next.querySelector('#nchatScreenshot'), closeMore);
+    bindScreenshot(next && next.querySelector('#nchatCapture'), closeMore);
     const plugins = next && next.querySelector('#nchatPlugins');
     if (plugins) plugins.addEventListener('click', () => {
       closeMore();
@@ -533,7 +543,7 @@
 
   global.WorkComposer = { html, replace, upgradeChat, contextButton, permissionLabel, permissionAppearance, syntaxHint, executionMode, syncExecutionMenu, closeExecutionMenu,
     openPlugins, pluginSection, pluginRows, loadMenuPlugins, peekMenuPlugins, menuPluginRevision,
-    bindMoreKeyboard, screenshotRow, bindScreenshot, placeMore, placeRuntime, bindPlaceholder, icons: ICONS };
+    bindMoreKeyboard, screenshotButton, screenshotRow, bindScreenshot, placeMore, placeRuntime, bindPlaceholder, icons: ICONS };
   global.addEventListener('resize', () => {
     document.querySelectorAll('.cp-runtime-pop.show').forEach(popup =>
       placeRuntime(popup.parentElement.querySelector('#cpRuntime'), popup));

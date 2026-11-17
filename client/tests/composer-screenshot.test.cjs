@@ -63,3 +63,11 @@ test('a failed screenshot restores the menu entry and reports the failure', asyn
   assert.equal(subject.button.disabled, false);
   assert.deepEqual(subject.calls, [['close'], ['notice', '屏幕录制权限未开启']]);
 });
+
+test('scissors buttons appear before the model in both composers and reuse annotation capture', () => {
+  const {api} = setup(()=>{});
+  assert.match(api.screenshotButton('cpCapture'), /wc-capture.*cpCapture/);
+  assert.match(api.screenshotButton('cpCapture'), /Alt\+A/);
+  assert.match(read('components/panels/compose-surface.js'), /model.insertAdjacentHTML\('beforebegin', WorkComposer.screenshotButton\('cpCapture'\)\)/);
+  assert.match(read('components/panels/work-composer.js'), /screenshotButton\('nchatCapture'\)/);
+});

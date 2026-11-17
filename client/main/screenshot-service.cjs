@@ -52,9 +52,30 @@ function pngPayload(dataUrl, nativeImage) {
   return { bytes, image, width, height };
 }
 
-function create({ app, ipcMain, BrowserWindow, screen, desktopCapturer, nativeImage, clipboard, ClipboardItem, dialog,
+function create({ app, ipcMain, BrowserWindow, screen, desktopCapturer, nativeImage, clipboard, ClipboardItem, dialog, globalShortcut,
   fs = defaultFs, getRendererRoot = () => app.getAppPath(), getTheme = nativeTheme.snapshot, timeoutMs = 20000, hideDelayMs = 180 }) {
   let active = null;
+  // 中文：系统注册失败通常意味着其他应用占用；保留按钮入口，不抢占或覆盖其他快捷键。
+  // English: Registration failure commonly means another app owns the key; keep button access without stealing bindings.
+  let shortcutRegistered = false;
+  let disposed = false;
+  const shortcut = 'Alt+A';
+  function registerShortcut() {
+    if (disposed || !globalShortcut) return;
+    try { shortcutRegistered = globalShortcut.register(shortcut, () => {
+      const focused = BrowserWindow.getFocusedWindow?.();
+      const candidates = [focused, ...(BrowserWindow.getAllWindows?.() || [])];
+      const owner = candidates.find(window => {
+        if (!window || window.isDestroyed() || !window.isVisible()) return false;
+        const wc = window.webContents;
+        return trustedFrame({ sender: wc, senderFrame: wc.mainFrame }, window, path.join(getRendererRoot(), 'desk.html'));
+      });
+      owner?.webContents.send('screenshot-shortcut-trigger');
+    }); } catch (_) { shortcutRegistered = false; }
+  }
+  if (app.isReady()) registerShortcut();
+  else app.whenReady?.().then(registerShortcut);
+
   const editorFile = () => path.join(getRendererRoot(), 'components', 'screenshot', 'screenshot.html');
   function trustedFrame(event, window, file) {
     try {
@@ -261,11 +282,18 @@ function create({ app, ipcMain, BrowserWindow, screen, desktopCapturer, nativeIm
     complete(active, { ok: true, cancelled: true });
     return { ok: true };
   }
+  ipcMain.handle('screenshot-shortcut-status', event => ownerFor(event)
+    ? { ok: true, registered: shortcutRegistered }
+    : failure('只能从工作窗口读取截图快捷键状态。'));
   const handlers = [start, getCapture, claim, finish, cancel, ready];
   CHANNELS.forEach((channel, index) => ipcMain.handle(channel, handlers[index]));
   return { dispose() {
+    if (disposed) return;
+    disposed = true;
     complete(active, { ok: true, cancelled: true });
     for (const channel of CHANNELS) ipcMain.removeHandler(channel);
+    ipcMain.removeHandler('screenshot-shortcut-status');
+    if (shortcutRegistered) globalShortcut.unregister(shortcut);
   } };
 }
 

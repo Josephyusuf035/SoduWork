@@ -102,7 +102,13 @@
     const workspace = composer && composer.querySelector('#cpWorkspace');
     const actions = composer && composer.querySelector('.wc-actions');
     const voice = composer && composer.querySelector('#cpMic');
-    if (model && actions) actions.insertBefore(model, voice || actions.firstChild);
+    if (model && actions) {
+      // 中文：剪刀放在模型左侧，直接复用截图标注与剪贴板流程，不自动上传图片。
+      // English: Put scissors before the model; reuse annotation/clipboard capture without automatic uploads.
+      actions.insertBefore(model, voice || actions.firstChild);
+      model.insertAdjacentHTML('beforebegin', WorkComposer.screenshotButton('cpCapture'));
+      WorkComposer.bindScreenshot(composer.querySelector('#cpCapture'), ctx._closeMore);
+    }
     if (runtime && actions) {
       const runtimeWrap = document.createElement('span');
       runtimeWrap.className = 'cp-runtimewrap';

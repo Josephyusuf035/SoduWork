@@ -518,6 +518,13 @@ const soduWorkBridge = {
 
   /* Capture window content with DIP coordinates and return a PNG data URL. */
   capturePage: (rect) => ipcRenderer.invoke('window-capture', rect),
+  // 中文：只公开注册结果与固定触发事件，不允许渲染器注册任意系统快捷键。
+  // English: Expose registration status and a fixed trigger, never arbitrary global shortcut registration.
+  screenshotShortcutStatus: () => ipcRenderer.invoke('screenshot-shortcut-status'),
+  onScreenshotShortcut: callback => {
+    const handler = () => callback(); ipcRenderer.on('screenshot-shortcut-trigger', handler);
+    return () => ipcRenderer.removeListener('screenshot-shortcut-trigger', handler);
+  },
   /* Forward capture options so the main-process service can hide only this
      requesting workspace window before acquiring display pixels. */
   startScreenshot: (options) => ipcRenderer.invoke('screenshot-start', options || {}),
