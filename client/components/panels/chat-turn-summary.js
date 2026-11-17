@@ -46,6 +46,9 @@
       turns.push({ key: 'reply:' + absolute, from, to, finalIndex: index,
         lastToolBlock: (message.blocks || []).findLastIndex(block => block.kind === 'toolcall'),
         ...tokenInfo(messages, from, to, metric),
+        /* The footer quotes the task total this turn reached, so the running value has to
+           travel with the turn instead of being recomputed from the final summary. */
+        cumulativeTokens: Number.isFinite(metric?.cumulativeTokens) ? metric.cumulativeTokens : null,
         elapsedMs: latestCloud ? cloudElapsed : Number.isFinite(metric?.elapsedMs) ? metric.elapsedMs : wallTime,
         wallTime: !latestCloud && !Number.isFinite(metric?.elapsedMs),
       });
@@ -90,13 +93,17 @@
           '" title="' + ctx.esc(title) + '">' + ctx.esc(text) + ctx.esc(hint) + '</span>',
       };
     }
+    /* The renderer also runs under a bare stub inside tests, so every cleanup step has to
+       tolerate a missing document or window instead of assuming a live browser. */
     function closeUsageMenu() {
-      const menu = document.querySelector('.nturn-usage-menu');
+      const doc = typeof document === 'undefined' ? null : document;
+      const win = typeof window === 'undefined' ? null : window;
+      const menu = doc?.querySelector ? doc.querySelector('.nturn-usage-menu') : null;
       if (menu) menu.remove();
-      document.removeEventListener('pointerdown', onUsageMenuOutside, true);
-      document.removeEventListener('keydown', onUsageMenuKey, true);
-      window.removeEventListener('resize', closeUsageMenu);
-      window.removeEventListener('scroll', closeUsageMenu, true);
+      doc?.removeEventListener?.('pointerdown', onUsageMenuOutside, true);
+      doc?.removeEventListener?.('keydown', onUsageMenuKey, true);
+      win?.removeEventListener?.('resize', closeUsageMenu);
+      win?.removeEventListener?.('scroll', closeUsageMenu, true);
     }
     function onUsageMenuKey(event) { if (event.key === 'Escape') closeUsageMenu(); }
     function onUsageMenuOutside(event) {

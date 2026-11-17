@@ -131,6 +131,14 @@ function addTurnCumulatives(rows, cumulative, messages) {
   });
 }
 
+function injectTurnCumulatives(bounded, rows, state, cache, visibleAfter) {
+  const cumulative = turnCumulative(state, cache);
+  const withTotals = addTurnCumulatives(rows, cumulative, state.messages);
+  if (bounded) return withTotals;
+  return withTotals.map(row => ({ ...row,
+    fromMessage: visibleAfter[row.fromMessage], toMessage: visibleAfter[row.toMessage] }));
+}
+
 /*
  * A footer must report what the task had consumed when that turn ended, not the number it
  * will reach later, or every finished turn would quote today's total. This walks the same
@@ -321,10 +329,7 @@ function snapshot(state, options, { SCOPES, deriveStatus, statusText }) {
     messages,
     // Bounded owners use history.messageIndices. Full snapshots have no raw
     // index map and are also persisted as visible runtime-handoff prefixes.
-    turnMetrics: bounded
-      ? addTurnCumulatives(metrics.finish(), turnCumulative(state, cache), state.messages)
-      : metrics.finish().map(row => ({ ...row,
-        fromMessage: visibleAfter[row.fromMessage], toMessage: visibleAfter[row.toMessage] })),
+    turnMetrics: injectTurnCumulatives(bounded, metrics.finish(), state, cache, visibleAfter),
     tools,
     toolPreparations: preparation.list(state).map(row => ({ ...row, after: Math.max(0,
       (bounded ? visibleAfter.get(row.after) : visibleAfter[row.after]) ?? messages.length - 1) })),
