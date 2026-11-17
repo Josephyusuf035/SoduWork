@@ -221,8 +221,36 @@ def verify_runner_environment(python: Path, backend: Path, log: Path) -> None:
         label="[Runner] 检查本地运行环境 / Checking the local Runner environment")
 
 
+def prepare_environment(state: Path) -> dict[str, str]:
+    """Keep install caches inside this instance so --data-dir stays authoritative.
+
+    prepare() runs in the launcher process, which still sees the real user profile:
+    the isolated HOME built by runtime_environment() only applies to the service it
+    starts later. npm and pip would therefore write their download caches to the
+    system drive even when --data-dir points at another volume. On a machine with
+    a nearly full system drive the first install then fails halfway through, and the
+    artefacts it leaves behind are not part of the documented data directory.
+
+    Only the caches are redirected. TEMP/TMP stay inherited on Windows: other tools
+    spawned during preparation rely on them, and a build that exhausts the system
+    drive is reported by the step that fails, not silently.
+    """
+    cache = state / "cache"
+    env = dict(os.environ)
+    # Windows upper-cases environment names, and npm also reads NPM_CONFIG_CACHE,
+    # so compare case-insensitively before supplying a default that follows --data-dir.
+    present = {name.lower() for name in env}
+    for key, value in (("npm_config_cache", cache / "npm"), ("PIP_CACHE_DIR", cache / "pip")):
+        if key.lower() not in present:
+            env[key] = str(value)
+    if os.name != "nt" and "tmpdir" not in present:
+        env["TMPDIR"] = str(cache / "tmp")
+    return env
+
+
 def prepare(state: Path, log: Path) -> tuple[Path, Path]:
     _, npm = check_dependencies()
+    cache_env = prepare_environment(state)
     runtime = state / "application"
     backend = runtime / "hub-backend"
     backend.mkdir(parents=True, exist_ok=True)
@@ -258,6 +286,7 @@ def prepare(state: Path, log: Path) -> tuple[Path, Path]:
     if install:
         run([str(python), "-m", "pip", "install", "--disable-pip-version-check",
              *[argument for file in requirements for argument in ("-r", str(file))]], cwd=state, log=log,
+            env=cache_env,
             label="[2/4] 安装服务依赖 / Installing server dependencies (first run needs internet)")
         verify_runner_environment(python, backend, log)
         py_stamp.write_text(wanted, encoding="utf-8")
@@ -274,6 +303,7 @@ def prepare(state: Path, log: Path) -> tuple[Path, Path]:
     wanted = hashlib.sha256((source / "package-lock.json").read_bytes()).hexdigest()
     if read_stamp(npm_stamp) != wanted or not (frontend / "node_modules/vite").is_dir():
         run([npm, "ci", "--include=dev", "--no-audit", "--no-fund"], cwd=frontend, log=log,
+            env=cache_env,
             label="[3/4] 安装页面依赖 / Installing management UI dependencies")
         npm_stamp.write_text(wanted, encoding="utf-8")
     build_stamp = state / "frontend.sha256"
@@ -288,6 +318,7 @@ def prepare(state: Path, log: Path) -> tuple[Path, Path]:
     wanted = digest_files(files, ROOT)
     if read_stamp(build_stamp) != wanted or not (frontend / "dist/index.html").is_file():
         run([npm, "run", "build"], cwd=frontend, log=log,
+            env=cache_env,
             label="[4/4] 构建管理页面 / Building the management UI")
         build_stamp.write_text(wanted, encoding="utf-8")
     return python, backend
