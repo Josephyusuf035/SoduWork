@@ -82,14 +82,11 @@
       const parts = [agentLabel, String(summary?.model || '')].filter(Boolean);
       const head = parts.length ? parts.join(' · ') + ' · ' : '';
       const text = head + tx('本次任务累计') + ' ' + tokens.toLocaleString(locale) + ' tokens';
-      const hint = tx('（右键查看更多）');
-      const sessionId = String(ctx._sessionId || ctx._ref || '');
-      const title = tx('Agent · 模型 · 截至这一轮结束时本次任务累计消耗的 token，与「我的用量」读取同一份账本；右键可跳转到对应的用量记录。');
+      const hint = tx('（右键查看用量）');
+      const title = tx('Agent · 模型 · 截至这一轮结束时本次任务累计消耗的 token，与「我的用量」读取同一份账本；右键可打开用量记录。');
       return {
-        sessionId,
         text,
-        html: '<span class="nturn-usage" data-turn-usage="' + ctx.esc(sessionId) +
-          '" data-turn-key="' + ctx.esc(turn.key) +
+        html: '<span class="nturn-usage" data-turn-usage="' + ctx.esc(turn.key) +
           '" title="' + ctx.esc(title) + '">' + ctx.esc(text) + ctx.esc(hint) + '</span>',
       };
     }
@@ -106,32 +103,22 @@
       const menu = document.querySelector('.nturn-usage-menu');
       if (menu && !menu.contains(event.target)) closeUsageMenu();
     }
-    function openUsageMenu(node, x, y) {
+    function openUsageMenu(x, y) {
       closeUsageMenu();
-      const sessionId = String(node.dataset.turnUsage || '');
-      const turnKey = String(node.dataset.turnKey || '');
-      const facts = usageFacts(turns.find(item => item.key === turnKey));
       const menu = document.createElement('div');
       menu.className = 'nturn-usage-menu';
       menu.setAttribute('role', 'menu');
       menu.setAttribute('aria-label', tx('本次任务用量'));
-      menu.innerHTML = '<p>' + ctx.esc(facts ? facts.text : tx('本次任务用量')) + '</p>' +
-        [['record', '查看这条用量记录'], ['open', '打开我的用量']]
-          .map(([action, label]) => '<button type="button" role="menuitem" data-usage-action="' +
-            action + '">' + ctx.esc(tx(label)) + '</button>').join('');
+      menu.innerHTML = '<button type="button" role="menuitem" data-usage-action="open">' +
+        ctx.esc(tx('查看用量记录')) + '</button>';
       document.body.appendChild(menu);
       const box = menu.getBoundingClientRect();
       menu.style.left = Math.min(Math.max(8, x), Math.max(8, window.innerWidth - box.width - 8)) + 'px';
       menu.style.top = Math.min(Math.max(8, y), Math.max(8, window.innerHeight - box.height - 8)) + 'px';
-      menu.addEventListener('click', (event) => {
-        const button = event.target.closest?.('[data-usage-action]');
-        if (!button) return;
-        const action = button.dataset.usageAction;
+      menu.addEventListener('click', event => {
+        if (!event.target.closest?.('[data-usage-action="open"]')) return;
         closeUsageMenu();
-        if (typeof global.openUsagePanel !== 'function') return;
-        if (action === 'open') global.openUsagePanel();
-        /* Start from the ledger filter state, then narrow to this conversation's record. */
-        else global.openUsagePanel({ focus: { sessionId } });
+        if (typeof global.openUsagePanel === 'function') global.openUsagePanel();
       });
       // Listen after the contextmenu event unwinds so the opening gesture cannot close it.
       setTimeout(() => {
@@ -223,7 +210,7 @@
         node.addEventListener('contextmenu', event => {
           event.preventDefault();
           event.stopPropagation();
-          openUsageMenu(node, event.clientX, event.clientY);
+          openUsageMenu(event.clientX, event.clientY);
         });
       });
       if (boundList === list) return;

@@ -22,7 +22,6 @@
   let data = null;
   let seq = 0;
   let refreshTimer = null;
-  let focus = null;
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
@@ -100,16 +99,6 @@
 
   function openUsagePanel(options) {
     if (options && options.days) days = Math.max(1, Math.min(365, Number(options.days)));
-    /*
-     * A turn summary links here with the conversation it belongs to. Keeping the focus in
-     * module state survives the 60-second refresh, and the caller clears it by opening the
-     * panel without one, so a stale highlight can never outlive its own navigation.
-     */
-    const next = options && options.focus;
-    focus = next ? {
-      sessionId: String(next.sessionId || ''),
-      taskId: String(next.taskId || ''),
-    } : null;
     const p = mount();
     p.classList.add('show');
     if (typeof expandForOverlay === 'function') expandForOverlay();
@@ -251,29 +240,13 @@
     }).join('');
   }
 
-  function isFocused(item) {
-    if (!focus) return false;
-    const sessionId = String(item.sourceId || '');
-    if (focus.sessionId && sessionId === focus.sessionId) return true;
-    return Boolean(focus.taskId) && String(item.taskId || '') === focus.taskId;
-  }
-
   function recentRows(items) {
-    if (!items.length) {
-      return '<div class="usage-mini-empty usage-recent-empty">' +
-        (focus ? '当前会话还没有上报到用量账本，稍后再打开就能核对' : '最近还没有 AI 工作记录') + '</div>';
-    }
-    // A focused conversation may sit outside the newest window; surface it first so the
-    // link never lands on a list that silently omits the record it was opened for.
-    const rows = items.slice(0, 12);
-    const hit = focus ? items.find(isFocused) : null;
-    if (hit && !rows.includes(hit)) rows.unshift(hit);
-    return rows.map((item) => {
+    if (!items.length) return '<div class="usage-mini-empty usage-recent-empty">最近还没有 AI 工作记录</div>';
+    return items.slice(0, 12).map((item) => {
       const taskId = String(item.taskId || '');
       const clickable = taskId ? ' is-clickable' : '';
-      const focused = isFocused(item) ? ' is-focus' : '';
-      return '<button class="usage-event' + clickable + focused + '" type="button" data-task="' + esc(taskId) +
-        '"' + (taskId ? '' : ' disabled') + (focused ? ' aria-current="true"' : '') + '>' +
+      return '<button class="usage-event' + clickable + '" type="button" data-task="' + esc(taskId) +
+        '"' + (taskId ? '' : ' disabled') + '>' +
         "<span class=\"usage-event-dot\"></span><span class=\"usage-event-copy\"><b" + (item.title ? ' data-user-content' : '') + '>' + esc(tr(item.title) || tr('AI 使用')) +
           '</b><small>' + esc(tr(item.sourceLabel || item.sourceType || '工作')) + ' · ' +
           esc(agentName(item.agent)) + (item.model ? ' · ' + esc(item.model) : '') + '</small></span>' +
@@ -311,11 +284,7 @@
           '<em>' + agents.length + ' 个 Agent / 模型组合</em></div>' + metricRows(agents, total, 'agent') + '</section>' +
       '</div>' +
       '<section class="usage-surface usage-recent"><div class="usage-surface-head"><div><span data-i18n="eyebrow.recent_activity">RECENT ACTIVITY</span><b>最近的 AI 工作</b></div>' +
-        '<em>' + esc(focus
-          ? ((payload.recent || []).some(isFocused)
-            ? '已定位到当前会话的用量记录'
-            : '当前会话的用量还没有落到账本，稍后再打开就能核对')
-          : '点击任务记录查看完整链路') + '</em></div><div class="usage-event-list">' +
+        '<em>点击任务记录查看完整链路</em></div><div class="usage-event-list">' +
         recentRows(payload.recent || []) + '</div></section>' +
       '<footer class="usage-quality"><span class="usage-quality-dot' + (coverage >= 90 ? ' is-good' : '') + '"></span>' +
         '<b>数据可信度 ' + coverage + '%</b><span>已上报 ' + precise(quality.reported) +
@@ -328,10 +297,6 @@
       if (typeof global.openDetailEntry === 'function') global.openDetailEntry(taskId);
       else if (global.WorkspaceHost) global.WorkspaceHost.open('detail', { taskId });
     }));
-    const target = box.querySelector('.usage-event.is-focus');
-    if (target) {
-      requestAnimationFrame(() => target.scrollIntoView({ block: 'center', behavior: 'smooth' }));
-    }
   }
 
   global.openUsagePanel = openUsagePanel;
