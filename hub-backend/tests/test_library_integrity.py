@@ -197,6 +197,50 @@ class LibraryIntegrityTests(LibraryHttpTestCase):
         self.assertEqual(download.status_code, 200, download.text)
         self.assertEqual(download.content, original)
 
+    async def _assert_office_overwrite_rejected(self, filename, original, label):
+        upload = await self.request("POST", "/items/upload", files={
+            "file": (filename, original, "application/octet-stream"),
+        })
+        self.assertEqual(upload.status_code, 200, upload.text)
+        path = f"/items/{upload.json()['item']['id']}"
+        read = await self.request("GET", path + "/content")
+        self.assertEqual(read.status_code, 200, read.text)
+        content = read.json()["content"]
+        objects = dict(self.store.objects)
+        for edit in (content, content + "\nextra"):
+            response = await self.request("PATCH", path, json={"content": edit})
+            self.assertEqual(response.status_code, 400, response.text)
+            self.assertIn(label, response.json()["detail"])
+            self.assertEqual(self.store.objects, objects)
+        download = await self.request("GET", path + "/download")
+        self.assertEqual(download.content, original)
+
+    async def test_docx_content_updates_preserve_the_original_document(self):
+        from docx import Document
+
+        document = Document()
+        document.add_heading("Report", level=1)
+        document.add_paragraph("Summary: ").add_run("up 12%").bold = True
+        table = document.add_table(rows=1, cols=2)
+        table.cell(0, 0).text, table.cell(0, 1).text = "East", "12.8M"
+        document.sections[0].header.paragraphs[0].text = "Internal"
+        with BytesIO() as buffer:
+            document.save(buffer)
+            original = buffer.getvalue()
+        await self._assert_office_overwrite_rejected("report.docx", original, "DOCX")
+
+    async def test_pptx_content_updates_preserve_the_original_presentation(self):
+        from pptx import Presentation
+
+        presentation = Presentation()
+        slide = presentation.slides.add_slide(presentation.slide_layouts[5])
+        slide.shapes.title.text = "Roadmap"
+        slide.notes_slide.notes_text_frame.text = "Pause for questions"
+        with BytesIO() as buffer:
+            presentation.save(buffer)
+            original = buffer.getvalue()
+        await self._assert_office_overwrite_rejected("roadmap.PPTX", original, "PPTX")
+
     async def test_real_office_exports_download_and_read_back(self):
         for kind, content, expected in (("spreadsheet", "a\tb\n1\t2", "a\tb\n1\t2"),
                                         ("presentation", "Title\nBody", "Title\nBody")):
