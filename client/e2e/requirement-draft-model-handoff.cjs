@@ -257,7 +257,7 @@ async function selectRequirement() {
   await type('#cpInput', '制作一个可以打开的网页');
 }
 async function setup(options = {}) {
-  await win.loadFile(page); await js("localStorage.removeItem('fixtureWorkArchives');Object.keys(fixtureArchives).forEach(key=>delete fixtureArchives[key]);ChatCollaborationStore.remove('draft-1');ChatCollaborationStore.remove('history-session');openComposePanel({newSession:true});void 0;");
+  await win.loadFile(page); await js("localStorage.removeItem('fixtureWorkArchives');Object.keys(localStorage).filter(key=>key.startsWith('soduwork_compose_runtime_v1_')||key.startsWith('soduwork_compose_model_v1_')).forEach(key=>localStorage.removeItem(key));Object.keys(fixtureArchives).forEach(key=>delete fixtureArchives[key]);ChatCollaborationStore.remove('draft-1');ChatCollaborationStore.remove('history-session');openComposePanel({newSession:true});void 0;");
   await until("ComposeModelPicker.value().modelName==='fixture-default'", 'initial home model');
   if (!options.defaults) {
     await click('#cpRuntime'); await click('[data-runtime="qwen"]');
@@ -353,6 +353,13 @@ app.whenReady().then(async () => {
     report.network.push(request.url); callback({ cancel: true });
   });
   buildPage();
+  await runCase('runtime and model defaults are remembered separately for each workspace', async () => {
+    await setup();
+    await js("openComposePanel({newSession:true,cwd:'C:/fixture-other-workspace'});void 0;");
+    await until("ComposeRuntime.value()==='pi' && ComposeModelPicker.value().modelName==='fixture-default'", 'other workspace defaults');
+    await js('openComposePanel({newSession:true});void 0;');
+    await until("ComposeRuntime.value()==='qwen' && ComposeModelPicker.value().modelName==='fixture-chosen'", 'restored workspace defaults');
+  });
   await runCase('starter requirement plus preserves draft and selections when cancelled and starts only after confirmation', async () => {
     await setup();
     await type('#cpInput', 'Unsent text must survive adding a requirement');

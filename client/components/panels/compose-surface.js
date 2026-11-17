@@ -275,6 +275,7 @@
     if (global.ComposeModelPicker) {
       ComposeModelPicker.bind({
         api: ctx._setupApi,
+        workspaceScope: () => ctx._workspace.direct ? ctx._workspace.dir : 'default',
         escape: ctx.esc,
         onChange: (selection) => {
           const previousKey = ctx._capabilityKey();

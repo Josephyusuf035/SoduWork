@@ -41,13 +41,47 @@
   function loadContext(row = runtime()) {
     // This public scope contains Hub/device/account identifiers, never tokens.
     const owner = String(global.SoduWorkAPI?.taskStorageKey?.('ops') || 'renderer');
-    return { owner, key: JSON.stringify([owner, cloud() ? 'cloud' : 'local', row.id, row.modelMode]) };
+    const workspace = String(options.workspaceScope?.() || 'default').trim().slice(0, 2048) || 'default';
+    return { owner, key: JSON.stringify([owner, workspace, cloud() ? 'cloud' : 'local', row.id, row.modelMode]) };
+  }
+
+  function hashScope(value) {
+    let hash = 2166136261;
+    for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
+    return (hash >>> 0).toString(16).padStart(8, '0');
+  }
+
+  function storedStateKey(scope, id) {
+    return 'soduwork_compose_model_v1_' + hashScope(scope + ':' + String(id || 'pi'));
   }
 
   function state(id) {
-    const key = (cloud() ? 'cloud:' : 'local:') + String(id || 'pi');
-    if (!states.has(key)) states.set(key, { modelName: '', reasoningEffort: '', thinkingLevel: '', modelChosen: false });
+    const scope = loadContext(runtime()).key;
+    const key = scope + ':' + String(id || 'pi');
+    if (!states.has(key)) {
+      let saved = {};
+      try { saved = JSON.parse(global.localStorage?.getItem(storedStateKey(scope, id)) || '{}') || {}; }
+      catch (_) { saved = {}; }
+      states.set(key, {
+        modelName: typeof saved.modelName === 'string' ? saved.modelName.slice(0, 200) : '',
+        reasoningEffort: typeof saved.reasoningEffort === 'string' ? saved.reasoningEffort.slice(0, 32) : '',
+        thinkingLevel: typeof saved.thinkingLevel === 'string' ? saved.thinkingLevel.slice(0, 32) : '',
+        modelChosen: false,
+      });
+    }
     return states.get(key);
+  }
+
+  function persistState(id) {
+    const scope = loadContext(runtime()).key;
+    const selected = states.get(scope + ':' + String(id || 'pi'));
+    if (!selected) return;
+    try {
+      global.localStorage?.setItem(storedStateKey(scope, id), JSON.stringify({
+        modelName: selected.modelName, reasoningEffort: selected.reasoningEffort,
+        thinkingLevel: selected.thinkingLevel,
+      }));
+    } catch (_) { /* Keep the current selection when local storage is unavailable. */ }
   }
 
   function escape(value) {
@@ -124,6 +158,7 @@
       if (next) { selected.modelName = next; selected.modelChosen = false; }
       selected.thinkingLevel = '';
     } else selected.unavailable = false;
+    persistState(row.id);
   }
 
   function check() {
@@ -470,6 +505,7 @@
   }
 
   function notify() {
+    persistState(runtime().id);
     if (typeof options.onChange === 'function') options.onChange(value());
   }
 
@@ -681,7 +717,13 @@
     return refresh(true);
   }
 
-  global.ComposeModelPicker = { bind, close, refresh, ready, value, resetNewDraft,
+  function workspaceChanged() {
+    activeScope = '';
+    activeRuntime = '';
+    return refresh(true);
+  }
+
+  global.ComposeModelPicker = { bind, close, refresh, ready, value, resetNewDraft, workspaceChanged,
     nativeEffort: { html: effortCard, paint: paintEffortCard, levels: effortChoices, defaultLevel: defaultEffort },
     label: () => currentLabel(runtime(), state(runtime().id)) };
   const scopeChanged = () => {

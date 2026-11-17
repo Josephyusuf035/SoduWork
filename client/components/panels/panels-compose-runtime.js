@@ -29,9 +29,22 @@
   // Keep the last choice for each execution location. A local account Agent
   // must not silently become the cloud choice (and vice versa) when the user
   // switches the new-chat location tabs.
-  const selectedByLocation = { local: 'pi', cloud: 'pi' };
   const ownerScope = () => String(global.SoduWorkAPI?.taskStorageKey?.('ops') || 'renderer');
   let activeOwner = ownerScope(), probeGeneration = 0, selectionGeneration = 0;
+  let boundOptions = null;
+  const workspaceScope = () => String(boundOptions?.workspaceScope?.() || 'default').trim().slice(0, 2048) || 'default';
+  function hashScope(value) {
+    let hash = 2166136261;
+    for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
+    return (hash >>> 0).toString(16).padStart(8, '0');
+  }
+  function preferenceKey(where = location) {
+    return 'soduwork_compose_runtime_v1_' + hashScope(JSON.stringify([ownerScope(), workspaceScope(), where]));
+  }
+  function preferredRuntime(where = location) {
+    try { return global.localStorage?.getItem(preferenceKey(where)) || 'pi'; }
+    catch (_) { return 'pi'; }
+  }
   const probeKey = id => JSON.stringify([ownerScope(), location, id]);
   let probeChanged, releaseProbeChange;
   function changed() {
@@ -50,7 +63,6 @@
   let locationGeneration = 0;
   const probes = Object.create(null);
   const pendingProbes = new Map();
-  let boundOptions = null;
   function syncOwner() {
     const owner = ownerScope();
     if (owner === activeOwner) return false;
@@ -110,11 +122,13 @@
     return catalog.find((row) => row.id === String(id || '')) || catalog[0] || FALLBACK[0];
   }
 
-  function selectCurrent(id) {
+  function selectCurrent(id, remember = true) {
     const next = String(id || '');
     if (!next || !catalog.some((row) => row.id === next)) return false;
     current = next;
-    selectedByLocation[location] = next;
+    if (remember) {
+      try { global.localStorage?.setItem(preferenceKey(), next); } catch (_) { /* Keep the in-memory selection if storage is unavailable. */ }
+    }
     return true;
   }
 
@@ -333,10 +347,10 @@
       if (location === 'local') for (const row of loaded) {
         if (row.availability) probes[probeKey(row.id)] = row.availability;
       }
-      const preferred = selectedByLocation[location];
+      const preferred = preferredRuntime();
       const fallback = catalog.find((row) => row.id === 'pi') || catalog[0];
       if (!selectCurrent(preferred)) {
-        selectCurrent(catalog.some((row) => row.id === current) ? current : fallback?.id);
+        selectCurrent(fallback?.id, false);
       }
       renderRows(options.root);
       paint(options.root);
@@ -365,7 +379,7 @@
     }
     if (current === adapterId) {
       const fallback = catalog.find((row) => row.id === 'pi') || catalog[0];
-      if (fallback) selectCurrent(fallback.id);
+      if (fallback) selectCurrent(fallback.id, false);
     }
     renderRows(root);
     paint(root);
@@ -588,10 +602,20 @@
       locationGeneration++; probeGeneration++; pendingProbes.clear();
       cloudSelectionPromise = null; accessProbePromise = null;
       location = value === 'cloud' ? 'cloud' : 'local';
-      selectCurrent(selectedByLocation[location]);
+      const preferred = preferredRuntime();
+      if (!selectCurrent(preferred)) selectCurrent(catalog.find(row => row.id === 'pi')?.id || catalog[0]?.id, false);
       selectionGeneration++; changed();
       if (boundOptions) {
-        void refreshAccess();
+        void (catalogLoaded ? refreshAccess() : loadCatalog(boundOptions).then(() => refreshAccess()));
+        boundOptions.refresh();
+      }
+    },
+    workspaceChanged() {
+      const preferred = preferredRuntime();
+      if (!selectCurrent(preferred)) selectCurrent(catalog.find(row => row.id === 'pi')?.id || catalog[0]?.id, false);
+      selectionGeneration++; changed();
+      if (boundOptions) {
+        void (catalogLoaded ? refreshAccess() : loadCatalog(boundOptions).then(() => refreshAccess()));
         boundOptions.refresh();
       }
     },

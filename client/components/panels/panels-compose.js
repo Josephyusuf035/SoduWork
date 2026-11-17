@@ -134,6 +134,7 @@
     p.querySelectorAll('.wc-popover').forEach((pop) => pop.addEventListener('click', (event) => event.stopPropagation()));
     if (global.ComposeRuntime) ComposeRuntime.bind(p, {
       api: _setupApi,
+      workspaceScope: () => _workspace.direct ? _workspace.dir : 'default',
       say: (message) => { if (typeof petSay === 'function') petSay(message); },
       close: _closeSetupPops,
       refresh: _paintSetup,
@@ -791,6 +792,8 @@
       _mode = global.AccessPreferences?.snapshot?.().mode || 'standard';
       _workspace = { ...global.ComposeSurface.newSessionWorkspace(_workspace, sessionOptions),
         repoId: typeof sessionOptions.repoId === 'string' ? sessionOptions.repoId.trim() : '' };
+      global.ComposeRuntime?.workspaceChanged?.();
+      global.ComposeModelPicker?.workspaceChanged?.();
       _usedAtts = [];
       if (_intent && q.prefill) _intent.reset();
       _loadSetup();
