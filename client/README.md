@@ -22,6 +22,8 @@ The desktop uses Electron and native HTML/CSS/JavaScript. The React management U
 | `scripts/`, `build/` | Runtime preparation and native packaging |
 | `runner/`, `dist/`, `.runtime/` | Generated Runner, release packages, and runtime resources |
 
+## [More Details: Chinese](./DIRECTORY-GUIDE.zh-CN.md) · [More Details: English](./DIRECTORY-GUIDE.en.md)
+
 Conversations and task execution share the same session path: `panels-chat` → `conversationSession` → main-process IPC → `agent-runtime` → Pi or Runner. AI team assignments open the corresponding conversation. Requirement drawers expand task traces; legacy detail links resolve the same requirement rather than creating duplicate records.
 
 When the requirement creator and executor are the same person, execution continues in the original conversation. An explicitly selected runtime or model is applied through the normal native selection transaction while retaining the conversation ID and history. Acceptance also reuses the original execution conversation. These rules apply to Pi and every other runtime; only an authoritative missing-archive result permits a new conversation. Temporary read failures, denied access, and unconfirmed runtime switches preserve the original conversation and stop submission.

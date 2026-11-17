@@ -24,6 +24,8 @@
 | `scripts/`、`build/` | 运行时准备、打包与原生安装支持 |
 | `runner/`、`dist/`、`.runtime/` | 生成的 Runner、发行包和随附运行时；不作为源码维护 |
 
+ ## [更多详情: 中文版](./DIRECTORY-GUIDE.zh-CN.md) · [More Details: English](./DIRECTORY-GUIDE.en.md)
+
 普通对话、需求执行与目标使用同一会话链路：`panels-chat` → `conversationSession` → 主进程会话 IPC → `agent-runtime` → Pi 或 Runner。AI 团队点击工作打开对应会话；需求抽屉按需展开共享 TaskTrace。桌面竖条直接进入需求池，不保留旧任务看板、旧详情聊天框或独立 AI 工位会话。旧 `detail` 链接继续定位同一条需求，不新增数据记录。
 
 需求创建人和执行人为同一人时，执行继续使用原会话。用户明确选择的底座或模型通过正常的原生选择事务生效，会话 ID 和历史保持不变；验收也复用原执行会话。Pi 和其他底座遵循相同规则，只有主进程明确确认原归档不存在时才新建会话。暂时读取失败、无权访问或底座切换尚未确认时，保留原会话并停止提交。
