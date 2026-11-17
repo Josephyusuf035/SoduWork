@@ -1,4 +1,5 @@
 """Library isolation and failure recovery; no live database or storage."""
+from io import BytesIO
 import unittest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
@@ -156,6 +157,45 @@ class LibraryIntegrityTests(LibraryHttpTestCase):
             self.assertEqual(self.store.objects, before)
             downloaded = await self.request("GET", f"/items/{item['id']}/download")
             self.assertEqual(downloaded.content, b"original bytes")
+
+    async def test_xlsx_content_updates_preserve_the_original_workbook(self):
+        from openpyxl import Workbook
+
+        workbook = Workbook()
+        summary = workbook.active
+        summary.title = "Summary"
+        summary.append(["Subject", 42, "=B1*2"])
+        summary["A2"] = "first\nsecond"
+        workbook.create_sheet("Details")["A1"] = "keep me"
+        with BytesIO() as buffer:
+            workbook.save(buffer)
+            original = buffer.getvalue()
+        workbook.close()
+
+        upload = await self.request("POST", "/items/upload", files={
+            "file": ("report.XLSX", original, "application/octet-stream"),
+        })
+        self.assertEqual(upload.status_code, 200, upload.text)
+        item = upload.json()["item"]
+        path = f"/items/{item['id']}"
+        read = await self.request("GET", path + "/content")
+        self.assertEqual(read.status_code, 200, read.text)
+        content = read.json()["content"]
+        objects = dict(self.store.objects)
+
+        for edit in (content, content.replace("Subject", "Topic")):
+            response = await self.request("PATCH", path, json={"content": edit, "title": "Changed"})
+            self.assertEqual(response.status_code, 400, response.text)
+            self.assertIn("XLSX", response.json()["detail"])
+            self.assertEqual(self.store.objects, objects)
+
+        renamed = await self.request("PATCH", path, json={"title": "Renamed"})
+        self.assertEqual(renamed.status_code, 200, renamed.text)
+        self.assertEqual(renamed.json()["item"]["title"], "Renamed")
+        self.assertEqual(self.store.objects, objects)
+        download = await self.request("GET", path + "/download")
+        self.assertEqual(download.status_code, 200, download.text)
+        self.assertEqual(download.content, original)
 
     async def test_real_office_exports_download_and_read_back(self):
         for kind, content, expected in (("spreadsheet", "a\tb\n1\t2", "a\tb\n1\t2"),
