@@ -27,9 +27,9 @@ test('closing a preview releases connections with unfinished request headers', {
   assert.equal(runtime._records.size, 0);
 });
 
-function request(url) {
+function request(url, options = {}) {
   return new Promise((resolve, reject) => {
-    http.get(url, (response) => {
+    http.get(url, options, (response) => {
       const chunks = [];
       response.on('data', (chunk) => chunks.push(chunk));
       response.on('end', () => resolve({
@@ -209,6 +209,62 @@ test('video artifacts stream from an opaque loopback URL and honor byte ranges',
     assert.equal(ranged.headers['content-type'], 'video/mp4');
     assert.equal(ranged.body.toString(), '45678');
   } finally { runtime.closeAll(); fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('video suffix ranges return the requested tail without changing explicit or open-ended ranges', async context => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'soduwork-video-suffix-'));
+  context.after(() => { runtime.closeRef('video-suffix'); fs.rmSync(root, { recursive: true, force: true }); });
+  const bytes = Buffer.from('0123456789abcdef');
+  fs.writeFileSync(path.join(root, 'demo.mp4'), bytes);
+  const snapshot = outputs.scan(root, 0, Date.now() - 5000);
+  const session = { cwd: root, outputSnapshot: () => snapshot };
+  const artifact = snapshot.delivery.items.find(item => item.kind === 'video');
+  const launched = await runtime.preview(session, 'video-suffix', artifact.artifactId);
+  assert.equal(launched.ok, true);
+  for (const [range, start, end] of [
+    ['bytes=-1', 15, 15], ['bytes=-3', 13, 15], ['bytes=-8', 8, 15], ['bytes=-9', 7, 15],
+    ['bytes=-16', 0, 15], ['bytes=-20', 0, 15], ['bytes=-0003', 13, 15],
+    ['bytes=-9007199254740993', 0, 15], ['bytes=4-8', 4, 8], ['bytes=4-', 4, 15], ['bytes=4-99', 4, 15],
+  ]) {
+    await context.test(range, async () => {
+      const response = await request(launched.url, { headers: { Range: range } });
+      assert.equal(response.status, 206);
+      assert.equal(response.headers['content-range'], `bytes ${start}-${end}/${bytes.length}`);
+      assert.equal(response.headers['content-length'], String(end - start + 1));
+      assert.equal(response.headers['accept-ranges'], 'bytes');
+      assert.equal(response.body, bytes.subarray(start, end + 1).toString());
+    });
+  }
+  for (const range of ['bytes=-0', 'bytes=-000', 'bytes=16-', 'bytes=4-3', 'bytes=-', 'bytes=0-1,3-4']) {
+    await context.test('reject ' + range, async () => {
+      const response = await request(launched.url, { headers: { Range: range } });
+      assert.equal(response.status, 416);
+      assert.equal(response.headers['content-range'], 'bytes */16');
+      assert.equal(response.body, '');
+    });
+  }
+});
+
+test('zero-length suffix ranges are also rejected for a one-byte video', async context => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'soduwork-video-zero-suffix-'));
+  context.after(() => { runtime.closeRef('video-zero-suffix'); fs.rmSync(root, { recursive: true, force: true }); });
+  fs.writeFileSync(path.join(root, 'one.mp4'), 'x');
+  const snapshot = outputs.scan(root, 0, Date.now() - 5000);
+  const session = { cwd: root, outputSnapshot: () => snapshot };
+  const artifact = snapshot.delivery.items.find(item => item.kind === 'video');
+  const launched = await runtime.preview(session, 'video-zero-suffix', artifact.artifactId);
+  assert.equal(launched.ok, true);
+  const valid = await request(launched.url, { headers: { Range: 'bytes=-1' } });
+  assert.equal(valid.status, 206);
+  assert.equal(valid.body, 'x');
+  for (const range of ['bytes=-0', 'bytes=-000']) {
+    await context.test(range, async () => {
+      const response = await request(launched.url, { headers: { Range: range } });
+      assert.equal(response.status, 416);
+      assert.equal(response.headers['content-range'], 'bytes */1');
+      assert.equal(response.body, '');
+    });
+  }
 });
 
 test('output snapshots identify files changed in the active turn', () => {
