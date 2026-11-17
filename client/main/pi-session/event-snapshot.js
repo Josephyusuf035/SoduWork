@@ -44,15 +44,35 @@ function accountingReceipts(state, cache) {
  * reporter would refuse to bill (device-only models, non-reportable calls) are dropped
  * here as well instead of quietly inflating the number a user is asked to trust.
  */
+function billableReceipt(receipt) {
+  if (!receipt) return false;
+  if (receipt.localOnly === true || receipt.reportable === false) return false;
+  return !(typeof receipt.model === 'string' && receipt.model.trim().startsWith('local:'));
+}
+
+function billableMessage(message) {
+  return Boolean(message) && message.role === 'assistant' && message.done === true &&
+    Boolean(message.usage) && message.usageLocalOnly !== true &&
+    !String(message.usageModel || '').trim().startsWith('local:');
+}
+
+/* Every counter below goes through usage-values so a turn total and the session total
+   cannot drift apart on cache or reasoning handling. */
+function receiptTokens(receipts) {
+  const total = usageValues.empty();
+  for (const receipt of receipts) {
+    if (billableReceipt(receipt)) usageValues.add(total, receipt.usage);
+  }
+  return total;
+}
+
 function usageSummary(state, cache) {
   const receipts = accountingReceipts(state, cache);
   if (cache.summaryFrom === receipts) return cache.summary;
-  const total = usageValues.empty();
+  const total = receiptTokens(receipts);
   let agent = '', model = '', provider = '', latestAt = 0;
   for (const receipt of receipts) {
-    if (!receipt || receipt.localOnly === true || receipt.reportable === false) continue;
-    if (typeof receipt.model === 'string' && receipt.model.trim().startsWith('local:')) continue;
-    usageValues.add(total, receipt.usage);
+    if (!billableReceipt(receipt)) continue;
     if (Number(receipt.at) > latestAt) latestAt = Number(receipt.at);
     if (receipt.agent) agent = String(receipt.agent);
     if (receipt.model) model = String(receipt.model);
@@ -66,6 +86,44 @@ function usageSummary(state, cache) {
     costMicrousd: total.costMicrousd, costKnown: total.costKnown,
   });
   return cache.summary;
+}
+
+function addTurnCumulatives(rows, byIndex) {
+  return rows.map(row => ({ ...row,
+    cumulativeTokens: Number(byIndex.get(Number(row.toMessage || -1))) || 0 }));
+}
+
+/*
+ * A footer must report what the task had consumed when that turn ended, not the number it
+ * will reach later, or every finished turn would quote today's total. This walks the same
+ * receipts the ledger bills and records the running total at each raw message index, so a
+ * turn can read its own value from its last assistant message.
+ */
+function turnCumulative(state, cache) {
+  const history = Array.isArray(state.accountingHistory) ? state.accountingHistory : [];
+  const from = Number(state.accountingMessageFrom) || 0;
+  if (cache.cumulativeHistory === state.accountingHistory &&
+      cache.cumulativeFrom === from && cache.cumulativeMessages === state.messages &&
+      cache.cumulativeCount === state.messages.length &&
+      cache.cumulativeRevision === state.usageRevision) return cache.cumulative;
+  const byIndex = new Map();
+  let running = receiptTokens(history).total;
+  for (let index = from; index < state.messages.length; index += 1) {
+    const message = state.messages[index];
+    if (billableMessage(message)) {
+      const one = usageValues.empty();
+      usageValues.add(one, message.usage);
+      running += one.total;
+    }
+    byIndex.set(index, running);
+  }
+  cache.cumulativeHistory = state.accountingHistory;
+  cache.cumulativeFrom = from;
+  cache.cumulativeMessages = state.messages;
+  cache.cumulativeCount = state.messages.length;
+  cache.cumulativeRevision = state.usageRevision;
+  cache.cumulative = byIndex;
+  return byIndex;
 }
 
 function _snapshotAuditKey(state) {
@@ -224,8 +282,10 @@ function snapshot(state, options, { SCOPES, deriveStatus, statusText }) {
     messages,
     // Bounded owners use history.messageIndices. Full snapshots have no raw
     // index map and are also persisted as visible runtime-handoff prefixes.
-    turnMetrics: bounded ? metrics.finish() : metrics.finish().map(row => ({ ...row,
-      fromMessage: visibleAfter[row.fromMessage], toMessage: visibleAfter[row.toMessage] })),
+    turnMetrics: bounded
+      ? addTurnCumulatives(metrics.finish(), turnCumulative(state, cache))
+      : metrics.finish().map(row => ({ ...row,
+        fromMessage: visibleAfter[row.fromMessage], toMessage: visibleAfter[row.toMessage] })),
     tools,
     toolPreparations: preparation.list(state).map(row => ({ ...row, after: Math.max(0,
       (bounded ? visibleAfter.get(row.after) : visibleAfter[row.after]) ?? messages.length - 1) })),
