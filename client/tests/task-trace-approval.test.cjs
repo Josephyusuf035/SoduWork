@@ -272,6 +272,7 @@ for(const mode of ['1','auto'])test(`the actual acceptance action ${mode} captur
     closest:selector=>selector==='.tfd-inline-approval'?f.block:selector==='[data-tfd-acceptance-session]'?button:null};
   f.click(button);await settle();await settle();
   assert.equal(calls.length,1);assert.equal(calls[0][2].acceptanceInstruction,'Current approval note');
+  assert.equal(calls[0][2].startAcceptance, mode === 'auto');
 });
 
 test('the review note stays outside the manual-only approval details so both review modes can edit it',()=>{
