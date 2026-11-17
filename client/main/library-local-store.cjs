@@ -171,15 +171,25 @@ function create(app, owner, guard, configuredWorkRoot = '') {
   }
   async function garbageCollect(index) {
     // Garbage is recorded in the same index commit as the metadata change.
-    // Failed removal remains retryable, and never deletes a referenced object.
-    const referenced = new Set(index.items.map(x => x._object));
+    // A display-name copy lives beside its object. Protect the whole directory
+    // while any item still references it, including older shared-directory keys.
+    const referenced = new Set(index.items.map(x => path.dirname(objectPath(x._object))));
     for (const key of index.garbage) {
-      guard(); if (referenced.has(key)) continue;
-      const target = objectPath(key);
+      guard();
+      const directory = path.dirname(objectPath(key));
+      if (referenced.has(directory)) continue;
+      let files;
       try {
-        await checkedFile(target); guard(); await awaited(io.unlink(target));
-        await awaited(io.rmdir(path.dirname(target)));
-      } catch (e) { if (e.code !== 'ENOENT') throw e; }
+        await directories(directory);
+        files = (await awaited(io.readdir(directory))).map(name => path.join(directory, name));
+      } catch (e) { if (e.code === 'ENOENT') continue; throw e; }
+      // Validate every entry before deleting anything. Never follow links or
+      // recursively remove unexpected directories, even during recovery.
+      for (const file of files) await checkedFile(file);
+      for (const file of files) {
+        await checkedFile(file); guard(); await awaited(io.unlink(file));
+      }
+      await awaited(io.rmdir(directory));
     }
     if (index.garbage.length) { index.garbage = []; await save(index); }
   }
