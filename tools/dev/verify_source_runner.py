@@ -12,6 +12,7 @@ import asyncio
 import base64
 import json
 from pathlib import Path
+import platform
 import plistlib
 import re
 import secrets
@@ -232,7 +233,13 @@ def verify():
             'assert "additional_headers" in p and "proxy" in p; '
             'print(json.dumps({"cryptography":cryptography.__version__,"websockets":websockets.__version__}))'], text=True)
         report['dependencies'] = json.loads(versions)
-        assert report['dependencies']['cryptography'] == '49.0.0'
+        # requirements-runner.txt keeps 48.0.1 on Intel macOS only: 49.0.0 and 50.0.0 publish no
+        # macOS x86_64 wheel, so pip would build from source and require a Rust toolchain.
+        intel_macos = sys.platform == 'darwin' and platform.machine() == 'x86_64'
+        expected_cryptography = '48.0.1' if intel_macos else '49.0.0'
+        assert report['dependencies']['cryptography'] == expected_cryptography, (
+            f"unexpected cryptography {report['dependencies']['cryptography']}; "
+            f"expected {expected_cryptography} for {sys.platform}/{platform.machine()}")
         login = request(base, '/api/v1/admin/login', {'user': 'admin', 'pass': password})
         tasks = request(base, '/api/v1/admin/tasks', token=login['token'])
         assert not (tasks.get('items', tasks.get('tasks', [])) if isinstance(tasks, dict) else tasks)
