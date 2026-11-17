@@ -30,9 +30,11 @@ function fixture(catalog = localCatalog()) {
   return { context, messages, evaluate,
     detail: (id = 'local-fixture') => evaluate(`_mdDetailHtml(_mdProvider(${JSON.stringify(id)}))`),
     nav: (id = 'local-fixture') => evaluate(`_mdNavItemHtml(_mdProvider(${JSON.stringify(id)}))`),
-    apply({ provider = 'local-fixture', original, name, label = name, connected = true }) {
+    /* 中文：fixture 的用途参数允许以同一真实编辑入口测试 audio，默认仍为 chat，保持既有聊天回归用例的含义。
+     * English: A purpose parameter lets the fixture exercise audio through the same editor path; keep chat as default so existing chat regression cases retain their meaning. */
+    apply({ provider = 'local-fixture', original, name, label = name, connected = true, modality = 'chat' }) {
       if (original) evaluate(`_mdDrafts.set(${JSON.stringify(provider)}, {original:${JSON.stringify(original)}});`);
-      const values = { '[data-padd]': name, '[data-paddtype]': 'chat', '[data-mdlabel]': label };
+      const values = { '[data-padd]': name, '[data-paddtype]': modality, '[data-mdlabel]': label };
       context.editor = { isConnected: connected, dataset: { mdeditor: provider }, querySelector: selector => ({ value: values[selector] || '' }) };
       evaluate('_mdApplyModel(editor)');
     } };
@@ -199,14 +201,16 @@ test('an incomplete local catalog fails loading instead of promoting mirrored de
   assert.equal(incomplete.providers[0].modelDefs.length, 1, 'the original catalog is left untouched');
 });
 
-test('the local ownership rule covers chat, image and video models', () => {
+/* 中文：新增 audio 后列表仍必须按本机模型显示并可编辑，不能因为类型新增变成组织管理的只读镜像。
+ * English: After adding audio, device models must remain editable local rows rather than becoming managed read-only mirrors. */
+test('the local ownership rule covers chat, image, video and speech models', () => {
   const catalog = store.publicCatalog(store.normalize({ providers: [{ id: 'local-fixture',
-    baseUrl: 'http://127.0.0.1:1/v1', authMode: 'none' }], models: ['chat', 'image', 'video'].map(modality =>
+    baseUrl: 'http://127.0.0.1:1/v1', authMode: 'none' }], models: ['chat', 'image', 'video', 'audio'].map(modality =>
       ({ providerId: 'local-fixture', name: modality + '-model', modality })), keys: {} }));
   const f = fixture(catalog);
-  assert.equal(rows(f.detail()), 3);
-  assert.match(f.nav(), /3 模型/);
-  assert.equal((f.detail().match(/data-mdedit=/g) || []).length, 3);
+  assert.equal(rows(f.detail()), 4);
+  assert.match(f.nav(), /4 模型/);
+  assert.equal((f.detail().match(/data-mdedit=/g) || []).length, 4);
 });
 
 test('matching names in another local service or Hub ownership remain separate models', () => {
@@ -374,4 +378,16 @@ test('saving a personal service excludes untouched and forged company rows and c
   assert.equal(payload.providers.find(row => row.id === 'own-hub').name, 'Updated own');
   assert.equal(payload.keys['own-hub'], 'own-key');
   assert.equal(f.evaluate('_mdProvider("company").addressOverridden'), true, 'legacy state remains untouched until a deliberate server policy handles it');
+});
+
+/* 中文：验证本机编辑器可添加语音用途、组织编辑器不暴露该用途，且语音只复用原服务身份，不要求图片/视频参数。
+ * English: Verify device editors accept speech while managed editors do not offer it; speech reuses provider identity without image/video generation fields. */
+test('speech purpose is local-only and adding it reuses the provider without generation fields', () => {
+  const f = fixture();
+  assert.match(f.evaluate('_mdTypeOptions("chat", true)'), /value="audio"/);
+  assert.doesNotMatch(f.evaluate('_mdTypeOptions("chat", false)'), /value="audio"/);
+  f.apply({ name: 'whisper-1', modality: 'audio' });
+  assert.deepEqual(f.messages, []);
+  assert.equal(f.evaluate('_mdMyModels.find(row => row.name === "whisper-1").modality'), 'audio');
+  assert.equal(f.evaluate('_mdMyModels.find(row => row.name === "whisper-1").providerId'), 'local-fixture');
 });

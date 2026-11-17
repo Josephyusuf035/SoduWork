@@ -414,7 +414,15 @@ function _bind(el) {
       ctx._send();
     });
     const mic = el.querySelector('#nchatMic');
-    if (mic) mic.addEventListener('click', _toggleChatMic);
+    /* 中文：需求：会话与首页采用相同按住说话交互；延迟读取输入框和会话身份，使重新挂载后的按钮使用当前上下文。
+     * English: Requirement: use the same hold-to-talk interaction in chats and home. Read input/session identity on press so remounted controls use the current context. */
+    if (mic) global.ComposeVoice?.bindHold(mic, () => {
+      // 中文：按下时固定会话身份，录音期间切换会话不能把结果插入其他对话。
+      // English: Capture session identity on press so a session switch cannot redirect the transcript.
+      const epoch = ctx._viewEpoch, session = ctx._sessionId;
+      return { input: el.querySelector('#nchatInput'),
+        stillCurrent: () => ctx._viewEpoch === epoch && ctx._sessionId === session };
+    });
     const draftControls = createDraftControls(ctx);
     if (global.ChatComposerControls) ctx._composerControls = ChatComposerControls.create(el, {
       draft: draftControls,
@@ -786,24 +794,14 @@ function _bind(el) {
     });
   }
 
+/* 中文：保留已有程序化入口，但实际按钮走 bindHold；替换依赖浏览器 SpeechRecognition 的旧实现，使两处输入框共用可配置的主进程转录服务。
+ * English: Retain the existing programmatic entry point while actual buttons use bindHold. Replace browser SpeechRecognition with the configurable main-process transcription service shared by both composers. */
 function _toggleChatMic() {
-    const button = document.getElementById('nchatMic');
-    const SR = global.SpeechRecognition || global.webkitSpeechRecognition;
-    if (!SR) { if (typeof petSay === 'function') petSay('这台机器上没有可用的语音识别'); return; }
-    if (ctx._speech) { try { ctx._speech.stop(); } catch (e) {} ctx._speech = null; if (button) button.classList.remove('on'); return; }
-    try {
-      const rec = new SR();
-      const input = document.getElementById('nchatInput');
-      const base = input ? input.value : '';
-      rec.lang = 'zh-CN'; rec.interimResults = true; rec.continuous = true;
-      rec.onresult = (event) => {
-        let text = ''; for (let i = 0; i < event.results.length; i += 1) text += event.results[i][0].transcript;
-        if (input) { input.value = base + text; input.dispatchEvent(new Event('input', { bubbles: true })); }
-      };
-      rec.onerror = () => { if (typeof petSay === 'function') petSay('语音识别没有连上，请改用键盘输入'); };
-      rec.onend = () => { ctx._speech = null; if (button) button.classList.remove('on'); };
-      ctx._speech = rec; rec.start(); if (button) button.classList.add('on');
-    } catch (error) { ctx._speech = null; if (button) button.classList.remove('on'); }
+    // 中文：两种输入框共享录音流程；会话变化后拒绝回填，防止文字进入另一条对话。
+    // English: Share recording across composers and reject insertion after the conversation changes.
+    const epoch = ctx._viewEpoch, session = ctx._sessionId;
+    global.ComposeVoice?.toggle(document.getElementById('nchatMic'), document.getElementById('nchatInput'), null,
+      () => ctx._viewEpoch === epoch && ctx._sessionId === session);
   }
 
   return { _bind, _mount, _loadChatSkills, _openPluginBuilder, _toggleChatMic };

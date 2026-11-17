@@ -309,6 +309,12 @@ ipcRenderer.on('overlay-window-blur', (_event, revision) => {
 });
 
 const soduWorkBridge = {
+  // 中文：仅暴露固定语音操作，不提供任意网络请求接口。
+  // English: Expose fixed voice actions rather than an arbitrary networking bridge.
+  /* 中文：get 仅返回公开服务信息；permission 请求系统授权；transcribe 交主进程上传；cancel 只中止当前窗口任务。固定白名单保持 contextIsolation 的边界。
+   * English: get returns public service metadata, permission requests OS access, transcribe delegates upload to main, and cancel aborts this window only. The fixed allowlist preserves context-isolation boundaries. */
+  voiceInput: Object.fromEntries(['get', 'permission', 'transcribe', 'cancel'].map(action =>
+    [action, data => ipcRenderer.invoke('voice-input-' + action, data)])),
   pagePerformance: {
     snapshot: () => { trimPageIpcEvents(); return { available: true, events: pageIpcEvents.map(row => ({ ...row })) }; },
     clear: () => { pageIpcEpoch++; pageIpcEvents.length = 0; },

@@ -44,12 +44,16 @@ let _mdRefreshFlight = null;
 
 const _MD_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/>' +
   '<rect x="14" y="14" width="7" height="7" rx="2"/><path d="M14 6h2a2 2 0 0 1 2 2v2M6 14v2a2 2 0 0 0 2 2h2"/></svg>';
-const _MD_TYPES = { chat: '对话模型', image: '图片生成', video: '视频生成' };
+/* 中文：需求：通用转录模型拥有独立用途标签，避免进入聊天选择器；DeepSeek 服务级 ASR 不需要复制聊天模型为 audio。
+ * English: Requirement: give generic transcription models a distinct purpose so they never enter chat selection; service-level DeepSeek ASR does not require duplicating chat models as audio. */
+const _MD_TYPES = { chat: '对话模型', image: '图片生成', video: '视频生成', audio: '语音识别' };
 function _mdType(value) { return _MD_TYPES[value] ? value : 'chat'; }
 function _mdCanEdit(provider) { return provider?.personal === true; }
-function _mdTypeOptions(value) {
+/* 中文：本机目录支持 audio，组织目录暂不支持；根据服务归属过滤用途选项，而不是只在提交失败后报错。
+ * English: Device catalogs support audio while managed catalogs do not yet; filter purpose choices by ownership rather than waiting for a failed submission. */
+function _mdTypeOptions(value, localOnly = false) {
   const current = _mdType(value);
-  return Object.keys(_MD_TYPES).map((key) => '<option value="' + key + '"' +
+  return Object.keys(_MD_TYPES).filter(key => key !== 'audio' || localOnly).map((key) => '<option value="' + key + '"' +
     (key === current ? ' selected' : '') + '>' + _MD_TYPES[key] + '</option>').join('');
 }
 
@@ -279,7 +283,9 @@ function _mdRender() {
   if (!box || !_mdData) return;
   const chatUsable = _mdData.usable || [];
   const mediaUsable = _mdData.mediaUsable || {};
-  const usable = chatUsable.concat(mediaUsable.image || [], mediaUsable.video || []);
+  /* 中文：统计包含显式配置的语音模型，保持总数和用途分类一致；服务级自动发现的 DeepSeek ASR 不虚增用户保存的模型数。
+   * English: Count explicitly configured speech models for consistent totals and purpose counts; automatically derived DeepSeek ASR services do not inflate saved-model counts. */
+  const usable = chatUsable.concat(mediaUsable.image || [], mediaUsable.video || [], mediaUsable.audio || []);
   const all = (_mdData.providers || []).slice();
   if (_mdNew && !all.some((p) => p.id === _mdNew.id)) all.unshift(_mdNew);
   const q = _mdQuery.trim().toLowerCase();
@@ -296,12 +302,16 @@ function _mdRender() {
   const active = visible.filter((p) => ['local', 'mine', 'org'].includes(_mdState(p)));
   const available = visible.filter((p) => _mdState(p) === 'open');
   const advanced = visible.filter((p) => _mdState(p) === 'noaddr');
+  const mineN = usable.filter((m) => m.keyFrom === 'mine').length;
+  const homes = new Set(usable.map((m) => m.providerId)).size;
 
   const html = '<div class="cfg-master-detail md-master-detail">' +
     '<aside class="cfg-master md-master" aria-label="模型服务">' +
       '<div class="cfg-master-head"><div class="md-master-toolbar"><span>模型服务</span>' +
         '<button type="button" class="cfg-master-add" id="mdAddInline" aria-label="添加服务" title="添加服务"><span aria-hidden="true">＋</span> <span>添加</span></button></div>' +
-        '<strong>' + _mdMessage('models.available', '{count} 个可选模型', { count: usable.length }) + '</strong></div>' +
+        '<strong>' + _mdMessage('models.available', '{count} 个可选模型', { count: usable.length }) + '</strong>' +
+        '<small>' + _mdMessage('models.types', '{chat} 个聊天 · {image} 个图片 · {video} 个视频', { chat: chatUsable.length, image: (mediaUsable.image || []).length, video: (mediaUsable.video || []).length }) + ' · ' + (mediaUsable.audio || []).length + ' 语音 / speech' + '</small>' +
+        '<small>' + _mdMessage('models.providers', '{count} 家服务已配置 · {personal} 个使用个人额度', { count: homes, personal: mineN }) + '</small></div>' +
       '<div class="cfg-master-actions">' +
         '<label class="cfg-master-search"><span>搜索模型服务</span>' +
           '<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg>' +
@@ -770,7 +780,9 @@ async function _mdSaveChanges(closeAfter, loadId, scope) {
         _mdData = { ..._mdData, localRevision: result.revision,
           providers: result.providers.concat(_mdData.providers.filter(provider => !provider.localOnly)),
           myModels: _mdMyModels, usable: (result.usable || []).concat(managed(_mdData.usable)),
-          mediaUsable: Object.fromEntries(['image', 'video'].map(type =>
+          /* 中文：本机保存返回后立即保留 audio 可用列表，否则不重启页面时语音模型数量和选择会暂时丢失。
+           * English: Preserve audio availability immediately after a local save; otherwise speech counts/selections disappear until a full reload. */
+          mediaUsable: Object.fromEntries(['image', 'video', 'audio'].map(type =>
             [type, (result.mediaUsable?.[type] || []).concat(managed(_mdData.mediaUsable?.[type]))])) };
         if (_mdNew && result.providers.some(provider => provider.id === _mdNew.id)) {
           _mdEditor = _mdNew.id; _mdNew = null;

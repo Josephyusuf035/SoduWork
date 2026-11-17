@@ -129,3 +129,39 @@ Unattended local automations resolve the same fallback before opening their conv
 Cloud conversations, remote dispatch and Hub-controlled workflows do not accept device-owned model references. Local Agent tests execute through the desktop's private Runner pipe and do not publish model configuration or test logs to Hub. Pi can generate images directly with a local OpenAI-compatible image model; output stays in the local workspace and accepts base64 image data or same-origin result URLs. Local video generation is not provided. Legacy automation model mappings without verifiable account ownership are retained in encrypted storage and require explicit model reselection. The local-model admission E2E exercises default selection, deletion, account isolation and quota behavior with real Electron processes and synthetic loopback services.
 
 See [release scope](../docs/release-scope.en.md), [plugin authoring](../docs/plugin-authoring.en.md), and the [H5 SDK](sdk/README.md).
+
+## Voice input
+
+Use the microphone beside the home or conversation composer and select a speech recognition model from My models. If none is available, Configure in My models opens that page. Add a local model with purpose Speech recognition under an existing or new OpenAI-compatible service, then save. The service URL and API key are reused; chat models are not assumed to support transcription. Organization-managed transcription is not supported yet.
+
+Start recording requests microphone access. Only Stop and transcribe uploads audio to the displayed endpoint. Recordings stay in memory, with a two-minute and 20 MB limit. Review and edit the transcript, then Insert into draft; existing text is preserved and messages are never sent automatically. Cancel, close or switch conversations to release the microphone and discard pending insertion.
+
+Credentials remain in the existing My models secure store; voice input does not keep a separate copy. Requests resolve the latest saved model and credentials, so removed models cannot be used. The service must accept the recorded audio format at `/audio/transcriptions` using multipart requests and JSON responses. Remote services require HTTPS; localhost HTTP is supported. Provider charges may apply.
+
+Official DeepSeek services configured in My models automatically supply speech recognition using the same API key, without adding a speech model. Multiple chat models under a service produce one speech option. A single service is selected automatically; multiple services show a picker. DeepSeek uses `/v1/tools/asr` with automatic language detection; recordings are converted locally to 16kHz mono PCM WAV and limited to 120 seconds and 8 MiB. Other providers still require a compatible transcription model.
+
+
+Press and hold the microphone (or hold Space/Enter while focused) to record; release to stop and transcribe. Releasing before microphone access is ready cancels capture. Escape, pointer cancellation and window blur cancel without uploading. A persistent status shows preparation and recording progress.
+
+Hold-to-talk inserts recognized text directly into the current editable draft without sending. Recording/transcription errors use an inline notification rather than opening the voice dialog.
+
+<!--
+中文开发说明（对应本次修改）：
+需求：按住麦克风录音，松开转录并追加当前草稿；复用“我的模型”的地址和凭据，缺配置才引导设置。
+实现原因：聊天协议兼容不代表转录兼容，故通用服务使用 audio 用途，官方 DeepSeek 使用独立 ASR 适配，服务内去重。
+权限与设备是两个异步阶段；超时、取消和迟到流必须分别处理。音频帧检测只能报告采集异常，不能修复系统 CoreAudio。
+白屏恢复只针对未完成的首次导航，有限重试后由原生提示交给用户；不刷新已工作的会话。
+package.json 是标准 JSON，不能写入 // 或块注释，否则 npm/构建器解析失败，因此其两项改动在此及 entitlements.mac.plist 说明：
+1. build.mac.extendInfo.NSMicrophoneUsageDescription：给发布包的系统授权提示提供真实录音用途，并非自动授予权限。
+2. build.mac.entitlements：引用音频输入和 Electron 运行时权限声明；保留 hardenedRuntime，权限仍须用户同意。
+源码 .app 的用途说明由 scripts/source-macos-app.cjs 写入，不能依赖发布打包配置自动生效。
+English developer notes (covering this change):
+Requirement: hold to record, release to transcribe and append to the current draft; reuse My models destinations/credentials and guide setup only when missing.
+Rationale: chat compatibility does not imply transcription compatibility. Generic providers need audio purpose; official DeepSeek uses a deduplicated service-level ASR adapter.
+Consent and device opening are separate asynchronous stages requiring deadlines, cancellation and late-stream disposal. Frame detection reports failure; it cannot repair system CoreAudio.
+Blank-window recovery targets unfinished initial navigation only, with bounded retries and native user recovery; working conversations are not reloaded.
+package.json is strict JSON: // and block comments would break npm/build parsing, so its two changes are explained here and in entitlements.mac.plist:
+1. build.mac.extendInfo.NSMicrophoneUsageDescription supplies the packaged OS consent purpose, not automatic microphone authorization.
+2. build.mac.entitlements references audio-input and Electron runtime permissions, retaining hardenedRuntime and mandatory user consent.
+Source bundles receive their purpose text from scripts/source-macos-app.cjs; release packaging settings do not automatically apply to source launch.
+-->

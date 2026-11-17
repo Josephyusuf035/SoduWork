@@ -108,7 +108,9 @@ function normalize(input, { persisted = false, current } = {}) {
     if (modelRef && references.has(modelRef)) invalid('模型引用重复');
     if (modelRef) references.add(modelRef);
     const modality = raw.modality ?? 'chat';
-    if (!['chat', 'image', 'video'].includes(modality)) invalid('模型类型');
+    // 中文：语音模型单列用途，防止被聊天运行时当作对话模型。
+    // English: Separate speech modality prevents transcription models entering chat runtime selection.
+    if (!['chat', 'image', 'video', 'audio'].includes(modality)) invalid('模型类型');
     if (raw.config != null && !record(raw.config)) invalid('模型参数');
     if (raw.ctxWindow != null && (!Number.isSafeInteger(raw.ctxWindow) || raw.ctxWindow < 0)) invalid('上下文窗口');
     const model = { ...(modelRef ? { id: modelRef } : {}),
@@ -249,7 +251,9 @@ function publicCatalog(value = readRaw()) {
       providerName: provider.name, keyFrom: 'local', own: true, localOnly: true };
   });
   return { providers, usable: usable.filter(row => row.modality === 'chat'),
-    mediaUsable: { image: usable.filter(row => row.modality === 'image'), video: usable.filter(row => row.modality === 'video') },
+    /* 中文：公开目录把 audio 与 chat 分开，保证普通聊天运行时只接收 chat；密钥仍只由 resolve 在主进程读取，不进入目录数据。
+     * English: Keep audio separate from chat in the public catalog so chat runtimes receive only chat entries; credentials remain available solely through main-process resolve, never catalog output. */
+    mediaUsable: { image: usable.filter(row => row.modality === 'image'), video: usable.filter(row => row.modality === 'video'), audio: usable.filter(row => row.modality === 'audio') },
     myModels: enriched.map(model => ({ ...model, localOnly: true })),
     revision: value.revision };
 }

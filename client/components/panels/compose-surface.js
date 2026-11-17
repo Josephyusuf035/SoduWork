@@ -268,10 +268,10 @@
       onChange: () => { ctx._pluginMention?.refresh?.(); ctx._rememberComposeDraft(); },
     });
     _restoreComposeDraft();
-    p.querySelector('#cpMic').addEventListener('click', (event) => {
-      if (global.ComposeVoice) ComposeVoice.toggle(event.currentTarget, input,
-        (message) => { if (typeof petSay === 'function') petSay(message); });
-    });
+    /* 中文：需求：首页麦克风按住录音、松开识别；统一绑定指针与键盘事件，不再用 click 切换，避免松手后的 click 再次触发语音窗口。
+     * English: Requirement: hold to record and release to transcribe on the home composer. Share pointer/keyboard bindings instead of click toggling so a release-generated click cannot reopen voice UI. */
+    global.ComposeVoice?.bindHold(p.querySelector('#cpMic'), () => ({ input,
+      say: message => { if (typeof petSay === 'function') petSay(message); } }));
     if (global.ComposeModelPicker) {
       ComposeModelPicker.bind({
         api: ctx._setupApi,

@@ -40,6 +40,9 @@ const _WORK_SPEC = require('./main/window-specs');
 const _piSessionIpc = require('./main/pi-session/ipc');
 require('./main/native-theme.cjs').install({ BrowserWindow, ipcMain });
 require('./main/screenshot-service.cjs').install({ getRendererRoot: rendererRoot });
+/* 中文：需求：语音输入复用“我的模型”的凭据；在主进程注册受限 IPC，渲染器只传模型引用和音频，不能直接取得密钥或任意发请求。
+ * English: Requirement: reuse My models credentials for voice input. Register restricted IPC in main so the renderer submits model references/audio without receiving keys or arbitrary networking access. */
+require('./main/voice-input.cjs').install({ getRendererRoot: rendererRoot });
 const _piSessions = require('./main/agent-runtime/pi-session-bridge');
 const _catalogChanges = require('./main/agent-runtime/catalog-changes.cjs').create({
   session: _piSessions, contents: () => webContents.getAllWebContents(),
@@ -406,7 +409,10 @@ function openDeskWindow(payload, sourceWin) {
   if (p.createRequirement === true) q.createRequirement = '1';
   if (p.approvalId) q.approvalId = String(p.approvalId);
   if (p.console) q.console = '1';
-  win.loadFile(path.join(rendererDirectory, 'desk.html'), { query: q });
+  /* 中文：需求：启动异常时不应永久白屏。用有限重试包裹首次导航，保留原 URL 参数；这与已存在的渲染崩溃恢复互补，不主动刷新已工作的页面。
+   * English: Requirement: prevent a permanently blank startup window. Wrap initial navigation in bounded retries while preserving URL arguments; complement crash recovery without refreshing a working page. */
+  require('./main/work-window-load.cjs').start({ win, dialog,
+    load: () => win.loadFile(path.join(rendererDirectory, 'desk.html'), { query: q }) });
   attachWorkWindowRecovery(win, windowKey);
   /*
    * Wait for explicit renderer readiness, not merely ready-to-show, with a 1.5-second

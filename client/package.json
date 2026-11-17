@@ -221,7 +221,9 @@
       ],
       "icon": "icon.png",
       "category": "public.app-category.productivity",
+      "extendInfo": { "NSMicrophoneUsageDescription": "Record speech only when you start voice input / 仅在主动使用语音输入时录音" },
       "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
       "identity": null,
       "artifactName": "SoduWork-${version}-mac-${arch}.${ext}",
       "extraResources": [

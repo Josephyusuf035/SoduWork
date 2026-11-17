@@ -351,7 +351,9 @@ test('新建入口把目标模式放入加号菜单，模型与底座位于发�
   assert.match(composerCss, /\.cp-more-pop\{display:none/);
   assert.match(composerCss, /\.cp-more-pop \.cp-modelpop,\.cp-more-pop>\.wc-popover/);
   assert.match(composerCss, /\.compose-panel \.wc-actions \.wc-voice\{margin-right:8px\}/);
-  assert.match(composerCss, /\.wc-voice\{display:none!important\}/);
+  /* 中文：麦克风已实现并恢复入口，布局契约不应继续要求 display:none；改为防止隐藏规则回归，不涉及发送/权限行为。
+   * English: The microphone feature is now implemented and visible; layout contracts should forbid the old display:none rule, without changing send or permission behavior. */
+  assert.doesNotMatch(composerCss, /\.wc-voice\{display:none!important\}/);
   assert.match(compose, /本次会话模型：/);
   assert.match(compose, /本次会话权限：/);
   assert.match(compose, /本次会话能力：/);
@@ -478,7 +480,9 @@ test('新建使用轻量方框斜笔图标', () => {
   assert.doesNotMatch(shell, /create: '<path d="M6 3h8l4 4/);
 });
 
-test('会话底栏以圆环展示上下文并暂时隐藏语音入口', () => {
+/* 中文：更新用例名称与最终需求一致：保留上下文圆环布局，同时让用户看见可用语音入口。
+ * English: Align the case name with final requirements: retain context-ring layout while exposing the usable voice entry. */
+test('会话底栏以圆环展示上下文并提供语音入口', () => {
   const composer = fs.readFileSync(path.join(__dirname, '../components/panels/work-composer.js'), 'utf8');
   const chat = fs.readFileSync(path.join(__dirname, '../components/panels/panels-chat.js'), 'utf8');
   const chatCss = fs.readFileSync(path.join(__dirname, '../components/panels/panels-chat.css'), 'utf8');
@@ -504,7 +508,9 @@ test('会话底栏把上下文放在模型左侧并保留粘贴附件', () => {
   assert.doesNotMatch(chat, /_sessionInputs\.length \+ ' 个附件'/);
   assert.match(css, /\.nmeta\{[^}]*position:relative/);
   assert.match(css, /\.nbox \.wc-voice\{margin-right:8px\}/);
-  assert.match(fs.readFileSync(path.join(__dirname, '../components/panels/work-composer.css'), 'utf8'), /\.wc-voice\{display:none!important\}/);
+  /* 中文：第二处布局契约也应防止旧隐藏规则复现，首页与会话输入框都必须显示麦克风。
+   * English: The second layout contract also guards against the old hiding rule; both home and chat composers must expose the microphone. */
+  assert.doesNotMatch(fs.readFileSync(path.join(__dirname, '../components/panels/work-composer.css'), 'utf8'), /\.wc-voice\{display:none!important\}/);
 });
 
 test('插件页保留紧凑技能卡片和统一连接管理入口', () => {

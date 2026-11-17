@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <!-- 中文：保留 Electron 构建器默认的运行时权限，并声明主动录音所需的音频输入权限。
+       English: Retain electron-builder runtime defaults and declare audio input for user-initiated recording. -->
+  <key>com.apple.security.cs.allow-jit</key><true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/>
+  <key>com.apple.security.cs.disable-library-validation</key><true/>
+  <!-- 中文需求：macOS 发布包在 hardened runtime 下录音需要 audio-input entitlement；
+       package.json 的 mac.entitlements 指向本文件。该声明不替代用户授权，
+       mac.extendInfo.NSMicrophoneUsageDescription 提供系统授权文案；源码启动由 source-macos-app.cjs 单独写入用途说明。
+       English requirement: packaged macOS recording under hardened runtime requires audio-input;
+       package.json mac.entitlements references this file. This declaration does not replace user consent.
+       mac.extendInfo.NSMicrophoneUsageDescription supplies the OS prompt; source-macos-app.cjs writes the source bundle purpose separately. -->
+  <key>com.apple.security.device.audio-input</key><true/>
+</dict></plist>

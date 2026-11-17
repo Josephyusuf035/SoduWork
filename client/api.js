@@ -1125,7 +1125,9 @@
         localProviderId: deviceProviderId(row.id), localOnly: true,
         ...(Array.isArray(row.modelDefs) ? { modelDefs: row.modelDefs.map(model) } : {}) })),
       myModels: (catalog.myModels || []).map(model), usable: (catalog.usable || []).map(model),
-      mediaUsable: Object.fromEntries(['image', 'video'].map(kind => [kind, (catalog.mediaUsable?.[kind] || []).map(model)])),
+      /* 中文：需求：语音模型在“我的模型”的加载与保存后都应保留。audio 和图片、视频一起投影设备所有权，避免被合并逻辑漏掉或误送给 Hub。
+       * English: Requirement: retain speech models through catalog loading/saving. Project audio with device ownership alongside image/video to avoid dropping it or forwarding it to Hub. */
+      mediaUsable: Object.fromEntries(['image', 'video', 'audio'].map(kind => [kind, (catalog.mediaUsable?.[kind] || []).map(model)])),
     };
   }
   function nativeLocalProvider(row) {
@@ -1616,6 +1618,9 @@
         mediaUsable: {
           image: (localCatalog.mediaUsable?.image || []).concat(managedModels(r.mediaUsable?.image)),
           video: (localCatalog.mediaUsable?.video || []).concat(managedModels(r.mediaUsable?.video)),
+          /* 中文：组织服务尚无转录代理，因此这里只合并本机语音目录；不能把组织聊天模型伪装成具有可直接读取的语音凭据。
+           * English: There is no managed transcription proxy, so merge only device speech entries; do not imply managed chat models expose usable speech credentials. */
+          audio: localCatalog.mediaUsable?.audio || [],
         },
         localRevision: localCatalog.revision,
       };

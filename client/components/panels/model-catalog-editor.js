@@ -83,12 +83,14 @@ function _mdModelListHtml(p, models, own) {
         ModelCapabilitiesUI.evidenceWarning(item) + ModelCapabilitiesUI.report(report, item) + '</div>' : '') + '</article>';
   }).join('') + '</div>';
 }
+/* 中文：语音配置统一放进“我的模型”：仅本机服务显示语音用途，防止向尚不支持 audio 的组织模型接口提交新类型；DeepSeek 官方服务可直接复用聊天配置。
+ * English: Centralize speech configuration in My models: offer speech purpose only for device providers, avoiding unsupported audio submissions to managed APIs. Official DeepSeek services can reuse chat configuration directly. */
 function _mdModelEditorHtml(p) {
   if (!_mdCanEdit(p)) return '';
   const draft = _mdDrafts.get(p.id), model = draft?.model || {}, config = model.config || {}, type = _mdType(model.modality);
   return '<details class="md-model-editor" data-mdeditor="' + esc(p.id) + '"' + (draft?.open ? ' open' : '') + '><summary>' +
     (draft?.original ? '编辑模型' : '添加模型') + '</summary><div class="md-addgrid">' +
-    '<label class="md-cap-field"><span>模型用途</span><select class="md-addselect" data-paddtype="' + esc(p.id) + '">' + _mdTypeOptions(type) + '</select></label>' +
+    '<label class="md-cap-field"><span>模型用途</span><select class="md-addselect" data-paddtype="' + esc(p.id) + '">' + _mdTypeOptions(type, p.localOnly === true) + '</select></label>' +
     '<label class="md-cap-field"><span>模型 ID</span><input class="md-addin" data-padd="' + esc(p.id) + '" aria-label="添加模型 ID" placeholder="输入准确的模型 ID" maxlength="160" value="' + esc(model.name || '') + '"></label>' +
     '<label class="md-addthinking" data-paddthinkingwrap="' + esc(p.id) + '"><span>思考模式</span><select class="md-addselect" data-paddthinking="' + esc(p.id) + '">' + _mdThinkingOptions(config.thinkingMode || (config.thinkingAlwaysOn ? 'always' : 'auto')) + '</select></label>' +
     '<label class="md-cap-field" data-mdchat><span>显示名称</span><input class="md-in" data-mdlabel value="' + esc(model.label || '') + '" placeholder="默认使用模型 ID"></label>' +
@@ -144,12 +146,14 @@ function _mdBindModels(box) {
     function typeChange() {
       const type = select.value;
       editor.querySelectorAll('[data-mdchat],[data-paddthinkingwrap]').forEach(el => { el.hidden = type !== 'chat'; });
+      /* 中文：语音适配器决定转录路径与请求格式，不使用图片/视频的生成参数；隐藏并禁用这些字段，避免把遗留草稿配置误保存为语音参数。
+       * English: Speech adapters own transcription paths and request formats, not image/video generation options. Hide and disable those fields to prevent stale generation drafts being saved as speech settings. */
       editor.querySelectorAll('[data-paddpath],[data-padddefaults],[data-paddstatus],[data-paddresult]').forEach(el => {
-        const visible = type !== 'chat' && (!el.matches('[data-paddstatus],[data-paddresult]') || type === 'video');
+        const visible = type !== 'chat' && type !== 'audio' && (!el.matches('[data-paddstatus],[data-paddresult]') || type === 'video');
         el.hidden = !visible; el.disabled = !visible;
       });
       const path = editor.querySelector('[data-paddpath]'), status = editor.querySelector('[data-paddstatus]');
-      if (!path.value && type !== 'chat') path.value = type === 'image' ? '/images/generations' : pid === 'volcengine' ? '/contents/generations/tasks' : '/videos/generations';
+      if (!path.value && type !== 'chat' && type !== 'audio') path.value = type === 'image' ? '/images/generations' : pid === 'volcengine' ? '/contents/generations/tasks' : '/videos/generations';
       if (!status.value && type === 'video' && pid === 'volcengine') status.value = '/contents/generations/tasks/{id}';
     }
     select.addEventListener('change', typeChange); typeChange();
@@ -191,6 +195,11 @@ function _mdApplyModel(editor) {
       if (config.thinkingMode !== old?.config?.thinkingMode) {
         delete config.reasoning; delete config.thinkingAlwaysOn; delete config.thinkingLevelMap;
       }
+    } else if (modality === 'audio') {
+      // 中文：语音使用标准转录接口，复用服务凭据；组织模型尚无此接口，限本机模型。
+      // English: Speech reuses provider credentials with the standard transcription endpoint; managed models lack that route.
+      if (_mdProvider(pid)?.localOnly !== true) throw Error('请添加本机语音识别模型 / Add a local speech model');
+      config = {};
     } else {
       const endpointPath = value('[data-paddpath]'), statusPath = value('[data-paddstatus]'), resultPath = value('[data-paddresult]');
       if (!endpointPath.startsWith('/')) throw Error('生成接口路径要以 / 开头');

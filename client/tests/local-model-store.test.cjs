@@ -332,3 +332,16 @@ test('agent runtime resolves local credentials through the trusted desktop host'
   assert.equal(result.model.key, 'secret');
   assert.equal(calls, 1);
 });
+
+ /* 中文：需求回归：语音复用已有服务 Key，但不能混入聊天候选或泄露到公开目录；所有数据都是隔离临时测试值。
+  * English: Regress credential reuse: speech resolves the provider key but never enters chat choices or exposes secrets in public catalogs; all values are isolated synthetic fixtures. */
+ test('speech models reuse provider credentials without entering chat choices', t => {
+  const f = fixture();
+  t.after(() => { store.configure(null); fs.rmSync(f.root, { recursive: true, force: true }); });
+  const catalog = store.save({ providers: [{ id: 'speech', baseUrl: 'https://asr.example/v1', authMode: 'key' }],
+    models: [{ providerId: 'speech', name: 'whisper-1', modality: 'audio' }], keys: { speech: 'synthetic-test-credential' } });
+  assert.equal(catalog.usable.length, 0);
+  assert.equal(catalog.mediaUsable.audio.length, 1);
+  assert.equal(store.resolve(catalog.myModels[0].id).key, 'synthetic-test-credential');
+  assert.ok(!JSON.stringify(catalog).includes('synthetic-test-credential'));
+ });

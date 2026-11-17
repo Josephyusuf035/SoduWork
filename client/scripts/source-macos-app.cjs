@@ -60,8 +60,13 @@ function prepareSourceApp({ root, binary, run = execFileSync }) {
     fs.cpSync(source, bundle, { recursive: true, verbatimSymlinks: true, mode: fs.constants.COPYFILE_FICLONE });
     const info = path.join(bundle, 'Contents/Info.plist');
     const value = JSON.parse(run('/usr/bin/plutil', ['-convert', 'json', '-o', '-', info], { encoding: 'utf8' }));
+    // 中文：macOS 需要麦克风用途说明，否则源码启动的录音授权可能被系统拒绝。
+    // English: macOS requires a microphone usage description for source-run recording permission.
+    /* 中文：package.json 的 extendInfo 只影响打包发布；源码启动另建 .app，必须在其 Info.plist 同样写入用途说明，且不修改原 Electron 包或扩大授权。
+     * English: package.json extendInfo affects release packaging only. Source startup creates a separate .app and must write the same purpose string to its Info.plist without modifying the original Electron bundle or widening consent. */
     Object.assign(value, { CFBundleName: name, CFBundleDisplayName: name,
-      CFBundleIdentifier: appId + '.source.' + sourceId, CFBundleIconFile: 'soduwork-source.icns' });
+      CFBundleIdentifier: appId + '.source.' + sourceId, CFBundleIconFile: 'soduwork-source.icns',
+      NSMicrophoneUsageDescription: 'Record speech only when you start voice input / 仅在主动使用语音输入时录音' });
     if (metadata.version) {
       value.CFBundleShortVersionString = metadata.version;
       value.CFBundleVersion = metadata.version;
