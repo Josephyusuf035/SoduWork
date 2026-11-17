@@ -125,6 +125,16 @@
       menu.addEventListener('click', event => {
         if (!event.target.closest?.('[data-usage-action="open"]')) return;
         closeUsageMenu();
+        /*
+         * Open through the workspace host instead of showing the panel directly. The host
+         * records which page is on screen, and that record is what lets the next sidebar
+         * navigation close this panel; showing it bare left the route stale, so choosing a
+         * conversation appeared to do nothing because the usage page stayed on top.
+         */
+        if (global.WorkspaceHost && typeof global.WorkspaceHost.open === 'function') {
+          global.WorkspaceHost.open('usage', {});
+          return;
+        }
         if (typeof global.openUsagePanel === 'function') global.openUsagePanel();
       });
       // Listen after the contextmenu event unwinds so the opening gesture cannot close it.
