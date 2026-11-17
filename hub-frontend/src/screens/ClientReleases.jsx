@@ -38,9 +38,10 @@ function fmtSize(bytes) {
   return (n / 1024 / 1024).toFixed(1) + ' MB'
 }
 
-/* Compare numeric version segments; invalid segments become zero. */
 function parseVersion(value) {
-  return String(value || '').split(/[.\-+]/).map((part) => parseInt(part, 10) || 0)
+  const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-beta\.(1|[1-9]\d*))?$/.exec(String(value || '').trim())
+  if (!match) return [0, 0, 0, 0, 0]
+  return [...match.slice(1, 4).map(Number), match[4] === undefined ? 1 : 0, Number(match[4] || 0)]
 }
 
 function newerVersion(a, b) {
