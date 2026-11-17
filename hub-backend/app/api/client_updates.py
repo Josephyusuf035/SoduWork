@@ -496,7 +496,10 @@ async def report_update_event(
         contract.validate_transition(row.state, state)
     except contract.UpdateContractError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    progress = max(0, min(100, int(body.get("progress") or 0)))
+    try:
+        progress = max(0, min(100, int(body.get("progress") or 0)))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="progress 要是整数") from None
     current = str(body.get("currentVersion") or "").strip()
     if state == "installed":
         current_v, target_v = contract.parse_version(current), contract.parse_version(row.target_version)

@@ -7,6 +7,14 @@ from fastapi import HTTPException
 import re
 
 
+def _int_field(value, default: int, label: str) -> int:
+    """Coerce a dict-body numeric field; non-integers are a client error, not a server crash."""
+    try:
+        return int(value or default)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail=f"{label} 要是整数") from None
+
+
 def schedule_payload(s, *, timestamp, administrative=False) -> dict:
     from datetime import datetime, timezone
     from ..services import schedules as sch
@@ -96,11 +104,11 @@ def apply_schedule_update(s, body: dict) -> None:
         from ..services.conversation_turns import execution_instruction
         s.note = execution_instruction(body.get("note"))
     if "atHour" in body:
-        s.at_hour = max(0, min(23, int(body.get("atHour") or 0)))
+        s.at_hour = max(0, min(23, _int_field(body.get("atHour"), 0, "atHour")))
     if "atMinute" in body:
-        s.at_minute = max(0, min(59, int(body.get("atMinute") or 0)))
+        s.at_minute = max(0, min(59, _int_field(body.get("atMinute"), 0, "atMinute")))
     if "weekday" in body:
-        s.weekday = max(1, min(7, int(body.get("weekday") or 1)))
+        s.weekday = max(1, min(7, _int_field(body.get("weekday"), 1, "weekday")))
     if "timeZone" in body:
         s.time_zone = sch.clean_time_zone(body.get("timeZone"))
     for k, f in (("assigneeId", "assignee_id"), ("assigneeType", "assignee_type"),
@@ -219,10 +227,10 @@ def apply_schedule_update(s, body: dict) -> None:
         s.required_capabilities = sch.clean_required_capabilities(
             body.get("requiredCapabilities"))
     if "retryLimit" in body:
-        s.retry_limit = max(0, min(10, int(body.get("retryLimit") or 0)))
+        s.retry_limit = max(0, min(10, _int_field(body.get("retryLimit"), 0, "retryLimit")))
     if "retryDelayMinutes" in body:
         s.retry_delay_minutes = max(
-            1, min(1440, int(body.get("retryDelayMinutes") or 5)))
+            1, min(1440, _int_field(body.get("retryDelayMinutes"), 5, "retryDelayMinutes")))
     if any(key in body for key in ("assigneeId", "modelName", "modelSource", "requiredCapabilities",
                                    "personalPluginKey", "personalPluginVersionPolicy",
                                    "personalPluginVersion", "personalPluginChecksum")) and (

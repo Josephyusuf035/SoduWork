@@ -416,7 +416,11 @@ async def create_domain(
     user: User = Depends(require_perm("user.manage")),
     session: AsyncSession = Depends(get_session),
 ):
-    r = await rbac.create_domain(session, (body.get("name") or "").strip(), int(body.get("sort") or 0))
+    try:
+        sort = int(body.get("sort") or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="sort 要是整数") from None
+    r = await rbac.create_domain(session, (body.get("name") or "").strip(), sort)
     await audit.log(session, user, "domain.create", "domain", r["id"], r["name"], {})
     return r
 
@@ -428,7 +432,13 @@ async def update_domain(
     user: User = Depends(require_perm("user.manage")),
     session: AsyncSession = Depends(get_session),
 ):
-    r = await rbac.update_domain(session, did, body.get("name"), body.get("sort"))
+    sort = body.get("sort")
+    if sort is not None:
+        try:
+            sort = int(sort)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="sort 要是整数") from None
+    r = await rbac.update_domain(session, did, body.get("name"), sort)
     if r is None:
         raise HTTPException(status_code=404, detail="领域不存在")
     await audit.log(session, user, "domain.update", "domain", did, r["name"], {})

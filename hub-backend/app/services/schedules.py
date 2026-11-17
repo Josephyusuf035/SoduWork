@@ -60,7 +60,9 @@ def clean_time_zone(value: str | None) -> str:
     name = str(value or DEFAULT_TIME_ZONE).strip()[:64] or DEFAULT_TIME_ZONE
     try:
         ZoneInfo(name)
-    except ZoneInfoNotFoundError:
+    except (ZoneInfoNotFoundError, ValueError):
+        # ValueError covers malformed keys ("../x", absolute paths) that are not
+        # lookup failures; both must fall back instead of crashing callers.
         if name not in (DEFAULT_TIME_ZONE, "UTC", "Etc/UTC"):
             return DEFAULT_TIME_ZONE
     return name
