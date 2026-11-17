@@ -25,6 +25,8 @@ You do not need to create a database, install Docker or Git, prepare an `.env` f
 
 The launcher installs both Hub and Runner dependencies in its private `venv/`, checks the Runner's Python imports, and gives the desktop that exact interpreter. You do not need a separate `hub-backend/.venv` for this entry point. If Agent management reports an incomplete source Runner environment, quit the source session and rerun the same launcher; keep the data directory intact.
 
+npm and pip caches from the install go to `cache/` inside the data directory, so `--data-dir` on another volume does not leave downloads on the system drive. Skip `cache/` when backing up or moving the data directory; it is regenerable. If you already set `npm_config_cache` or `PIP_CACHE_DIR`, the launcher keeps your values.
+
 On Windows, desktop startup also prepares and verifies a private PortableGit command runtime in this instance's application copy so Agents can use Bash, Git, and common tools. No separate Git installation or WSL configuration is needed. Later starts preserve the runtime and download cache and check the tools again. If preparation fails, inspect `startup.log`, fix network access, and rerun the same launcher.
 
 ## Know when startup is complete
