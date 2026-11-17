@@ -88,9 +88,47 @@ function usageSummary(state, cache) {
   return cache.summary;
 }
 
-function addTurnCumulatives(rows, byIndex) {
-  return rows.map(row => ({ ...row,
-    cumulativeTokens: Number(byIndex.get(Number(row.toMessage || -1))) || 0 }));
+/*
+ * A replayed conversation keeps every archived receipt in accountingHistory and starts the
+ * live window after the last restored message, so message indices alone cannot cover older
+ * turns. The archived receipts still carry their own timestamps, so keep a running total
+ * ordered by time and let a turn read the value it had when it ended.
+ */
+function archivedTimeline(receipts) {
+  const ordered = receipts.filter(billableReceipt)
+    .map(receipt => ({ at: Number(receipt.at) || 0, usage: receipt.usage }))
+    .sort((left, right) => left.at - right.at);
+  const timeline = [];
+  let running = 0;
+  for (const row of ordered) {
+    const one = usageValues.empty();
+    usageValues.add(one, row.usage);
+    running += one.total;
+    timeline.push({ at: row.at, total: running });
+  }
+  return timeline;
+}
+
+function archivedTotalAt(timeline, at) {
+  if (!timeline.length) return 0;
+  if (!at) return timeline[timeline.length - 1].total;
+  let low = 0, high = timeline.length - 1, found = 0;
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+    if (timeline[mid].at <= at) { found = timeline[mid].total; low = mid + 1; }
+    else high = mid - 1;
+  }
+  return found;
+}
+
+function addTurnCumulatives(rows, cumulative, messages) {
+  return rows.map(row => {
+    const index = Number(row.toMessage || -1);
+    const live = cumulative.byIndex.get(index);
+    if (live != null) return { ...row, cumulativeTokens: live };
+    const endedAt = Number(messages?.[index]?.completedAt) || 0;
+    return { ...row, cumulativeTokens: archivedTotalAt(cumulative.timeline, endedAt) };
+  });
 }
 
 /*
@@ -106,8 +144,9 @@ function turnCumulative(state, cache) {
       cache.cumulativeFrom === from && cache.cumulativeMessages === state.messages &&
       cache.cumulativeCount === state.messages.length &&
       cache.cumulativeRevision === state.usageRevision) return cache.cumulative;
+  const timeline = archivedTimeline(history);
   const byIndex = new Map();
-  let running = receiptTokens(history).total;
+  let running = timeline.length ? timeline[timeline.length - 1].total : 0;
   for (let index = from; index < state.messages.length; index += 1) {
     const message = state.messages[index];
     if (billableMessage(message)) {
@@ -122,8 +161,8 @@ function turnCumulative(state, cache) {
   cache.cumulativeMessages = state.messages;
   cache.cumulativeCount = state.messages.length;
   cache.cumulativeRevision = state.usageRevision;
-  cache.cumulative = byIndex;
-  return byIndex;
+  cache.cumulative = { byIndex, timeline };
+  return cache.cumulative;
 }
 
 function _snapshotAuditKey(state) {
@@ -283,7 +322,7 @@ function snapshot(state, options, { SCOPES, deriveStatus, statusText }) {
     // Bounded owners use history.messageIndices. Full snapshots have no raw
     // index map and are also persisted as visible runtime-handoff prefixes.
     turnMetrics: bounded
-      ? addTurnCumulatives(metrics.finish(), turnCumulative(state, cache))
+      ? addTurnCumulatives(metrics.finish(), turnCumulative(state, cache), state.messages)
       : metrics.finish().map(row => ({ ...row,
         fromMessage: visibleAfter[row.fromMessage], toMessage: visibleAfter[row.toMessage] })),
     tools,
