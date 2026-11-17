@@ -6,6 +6,7 @@ const toolDetail = require('./tool-detail');
 const { selectTools } = require('./snapshot-window');
 const agentSource = require('../conversation/agent-source.cjs');
 const turnMetrics = require('./turn-metrics');
+const usageValues = require('../agent-runtime/usage-values');
 /* Project blocks in contentIndex order and place tools after their owning messages. */
 function _snapshotCache(state) {
   if (!state._snapshotCache) {
@@ -35,6 +36,36 @@ function accountingReceipts(state, cache) {
       ...(m.usageLocalOnly === true ? { localOnly: true } : {}),
       ...(m.quotaUsageToken ? { quotaUsageToken: m.quotaUsageToken } : {}) })));
   return cache.receipts;
+}
+
+/*
+ * A finished task quotes one token number in two places: the turn footer and the Hub
+ * ledger. Both must read the same receipts through the same rules, so receipts the
+ * reporter would refuse to bill (device-only models, non-reportable calls) are dropped
+ * here as well instead of quietly inflating the number a user is asked to trust.
+ */
+function usageSummary(state, cache) {
+  const receipts = accountingReceipts(state, cache);
+  if (cache.summaryFrom === receipts) return cache.summary;
+  const total = usageValues.empty();
+  let agent = '', model = '', provider = '', latestAt = 0;
+  for (const receipt of receipts) {
+    if (!receipt || receipt.localOnly === true || receipt.reportable === false) continue;
+    if (typeof receipt.model === 'string' && receipt.model.trim().startsWith('local:')) continue;
+    usageValues.add(total, receipt.usage);
+    if (Number(receipt.at) > latestAt) latestAt = Number(receipt.at);
+    if (receipt.agent) agent = String(receipt.agent);
+    if (receipt.model) model = String(receipt.model);
+    if (receipt.provider) provider = String(receipt.provider);
+  }
+  cache.summaryFrom = receipts;
+  cache.summary = Object.freeze({
+    tokens: total.total, input: total.input, output: total.output,
+    requests: total.requests, turns: total.turns, latestAt,
+    agent, model, provider,
+    costMicrousd: total.costMicrousd, costKnown: total.costKnown,
+  });
+  return cache.summary;
 }
 
 function _snapshotAuditKey(state) {
@@ -203,6 +234,7 @@ function snapshot(state, options, { SCOPES, deriveStatus, statusText }) {
       at: item.at, scope: item.scope,
     })),
     usage: state.usage,
+    usageSummary: usageSummary(state, cache),
     contextUsage: state.contextUsage,
     pendingUi: state.pendingUi,
     completion: {

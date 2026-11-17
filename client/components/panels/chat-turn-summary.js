@@ -60,7 +60,95 @@
       const seconds = Math.floor(Math.max(0, value) / 1000);
       return seconds < 60 ? seconds + 's' : Math.floor(seconds / 60) + 'm ' + String(seconds % 60).padStart(2, '0') + 's';
     };
-    function reset() { expanded.clear(); turns = []; byIndex.clear(); scope = ''; }
+    function reset() { expanded.clear(); turns = []; byIndex.clear(); scope = ''; closeUsageMenu(); }
+    /*
+     * The footer quotes the whole task, not the reply above it. The Hub bills a session
+     * once, so a per-turn figure could never be reconciled with 「我的用量」; keeping the
+     * cumulative number here is what makes the two views comparable. Receipts without a
+     * price still report tokens, matching the ledger.
+     */
+    function usageFacts() {
+      const summary = ctx._snap?.usageSummary;
+      const tokens = Number(summary && summary.tokens) || 0;
+      if (!(tokens > 0)) return null;
+      const brand = global.AgentBrand;
+      /* Receipts carry the agent that actually billed the call; older archived turns may
+         omit it, so fall back to the newest visible attribution instead of guessing. */
+      const agentKey = summary.agent || (ctx._snap?.messages || []).reduceRight(
+        (found, message) => found || String(message?.sourceAgent?.agentId || ''), '');
+      const agentId = agentKey ? (brand?.canonical?.(agentKey) || String(agentKey)) : '';
+      const agentLabel = agentId ? (brand?.LABELS?.[agentId] || agentId) : '';
+      const locale = globalThis.SoduWorkI18n?.getLocale?.() || 'zh-CN';
+      const parts = [agentLabel, String(summary.model || '')].filter(Boolean);
+      const head = parts.length ? parts.join(' · ') + ' · ' : '';
+      const text = head + tx('本次任务累计') + ' ' + tokens.toLocaleString(locale) + ' tokens';
+      const hint = tx('（右键查看更多）');
+      const sessionId = String(ctx._sessionId || ctx._ref || '');
+      const title = tx('Agent · 模型 · 本次任务累计消耗的 token，含此前每一轮对话，与「我的用量」读取同一份账本；右键可跳转到对应的用量记录。');
+      return {
+        sessionId,
+        text,
+        html: '<span class="nturn-usage" data-turn-usage="' + ctx.esc(sessionId) +
+          '" title="' + ctx.esc(title) + '">' + ctx.esc(text) + ctx.esc(hint) + '</span>',
+      };
+    }
+    function closeUsageMenu() {
+      const menu = document.querySelector('.nturn-usage-menu');
+      if (menu) menu.remove();
+      document.removeEventListener('pointerdown', onUsageMenuOutside, true);
+      document.removeEventListener('keydown', onUsageMenuKey, true);
+      window.removeEventListener('resize', closeUsageMenu);
+      window.removeEventListener('scroll', closeUsageMenu, true);
+    }
+    function onUsageMenuKey(event) { if (event.key === 'Escape') closeUsageMenu(); }
+    function onUsageMenuOutside(event) {
+      const menu = document.querySelector('.nturn-usage-menu');
+      if (menu && !menu.contains(event.target)) closeUsageMenu();
+    }
+    function openUsageMenu(node, x, y) {
+      closeUsageMenu();
+      const sessionId = String(node.dataset.turnUsage || '');
+      const facts = usageFacts();
+      const menu = document.createElement('div');
+      menu.className = 'nturn-usage-menu';
+      menu.setAttribute('role', 'menu');
+      menu.setAttribute('aria-label', tx('本次任务用量'));
+      menu.innerHTML = '<p>' + ctx.esc(facts ? facts.text : tx('本次任务用量')) + '</p>' +
+        [['record', '查看这条用量记录'], ['open', '打开我的用量'], ['copy', '复制用量摘要']]
+          .map(([action, label]) => '<button type="button" role="menuitem" data-usage-action="' +
+            action + '">' + ctx.esc(tx(label)) + '</button>').join('');
+      document.body.appendChild(menu);
+      const box = menu.getBoundingClientRect();
+      menu.style.left = Math.min(Math.max(8, x), Math.max(8, window.innerWidth - box.width - 8)) + 'px';
+      menu.style.top = Math.min(Math.max(8, y), Math.max(8, window.innerHeight - box.height - 8)) + 'px';
+      menu.addEventListener('click', (event) => {
+        const button = event.target.closest?.('[data-usage-action]');
+        if (!button) return;
+        const action = button.dataset.usageAction;
+        closeUsageMenu();
+        if (action === 'copy') {
+          const text = facts ? facts.text : '';
+          if (!text) return;
+          void Promise.resolve(global.TaskTraceExecutionDetails?.copyText?.(text))
+            .then((copied) => { if (copied && typeof petSay === 'function') petSay(tx('已复制用量摘要')); });
+          return;
+        }
+        if (typeof global.openUsagePanel !== 'function') return;
+        if (action === 'open') global.openUsagePanel();
+        /* Start from the ledger filter state, then narrow to this conversation's record. */
+        else global.openUsagePanel({ focus: { sessionId } });
+      });
+      // Listen after the contextmenu event unwinds so the opening gesture cannot close it.
+      setTimeout(() => {
+        if (!menu.isConnected) return;
+        document.addEventListener('pointerdown', onUsageMenuOutside, true);
+        document.addEventListener('keydown', onUsageMenuKey, true);
+        window.addEventListener('resize', closeUsageMenu);
+        window.addEventListener('scroll', closeUsageMenu, true);
+      }, 0);
+      const first = menu.querySelector('[data-usage-action]');
+      if (first) first.focus({ preventScroll: true });
+    }
     function prepare(snap, finals) {
       const nextScope = JSON.stringify([ctx._ref || '', global.SoduWorkAPI?.taskStorageKey?.('ops') || '']);
       if (scope !== nextScope) { reset(); scope = nextScope; }
@@ -73,9 +161,8 @@
       const label = ctx.esc(tx(open ? '收起过程' : '展开过程'));
       // A completed turn owns immutable timing, including after switching or
       // reopening. A live counter cannot supply a missing historical duration.
-      // Keep the footer focused on elapsed time. Token usage remains in the
-      // immutable turn metrics for compaction/diagnostics, but is not part of
-      // the message metadata shown to users.
+      // The live token counter is dropped because it counts this reply only, while the
+      // footer must quote the whole task; usageFacts() appends that cumulative number.
       let values = currentMetrics ? currentMetrics.replace(/^<div\b[^>]*>/, '').replace(/<\/div>$/, '')
         : '<span>' + ctx.esc(tx('用时')) + ' ' + duration(turn.elapsedMs) + '</span>';
       values = values.replace(/(<span\b[^>]*\bdata-thinking-label[^>]*>)[\s\S]*?(<\/span>)/,
@@ -97,6 +184,8 @@
           .replace(/\s+tokens?\b/gi, '')
           .replace(/<span\b[^>]*class=["']nstatus-divider["'][^>]*>\s*·\s*<\/span>/g, '');
       }
+      const facts = usageFacts();
+      if (facts) values += '<span class="nstatus-divider">·</span>' + facts.html;
       return '<div class="nturn-summary" data-chat-node="turn-summary:' + ctx.esc(turn.key) + '">' +
         '<button type="button" data-turn-toggle="' + ctx.esc(turn.key) + '" aria-expanded="' + open +
         '" title="' + label + '" aria-label="' + label + '">' +
@@ -132,6 +221,15 @@
         button.setAttribute('aria-expanded', String(open));
         button.title = tx(open ? '收起过程' : '展开过程');
         button.setAttribute('aria-label', button.title);
+      });
+      list.querySelectorAll('[data-turn-usage]').forEach(node => {
+        if (node.dataset.usageBound === '1') return;
+        node.dataset.usageBound = '1';
+        node.addEventListener('contextmenu', event => {
+          event.preventDefault();
+          event.stopPropagation();
+          openUsageMenu(node, event.clientX, event.clientY);
+        });
       });
       if (boundList === list) return;
       boundList = list;
