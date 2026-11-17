@@ -280,6 +280,18 @@
     }).join('');
   }
 
+  /* 中文：在“我的记忆”下方提供独立的日夜选项，使用矢量图标适配文字颜色，并以 aria-pressed 表达当前选择。
+   * English: Provide day/night choices below My memory, with vector icons that follow text color and aria-pressed to expose the selection. */
+  function appearanceHtml() {
+    const mode = document.documentElement.dataset.appearance || 'light';
+    const paths = {
+      light: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+      dark: '<path d="M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z"/>',
+    };
+    return '<div class="ws-appearance-options" role="group" aria-label="' + wsT('appearance.label', '页面模式') + '">' +
+      ['light', 'dark'].map(value => '<button type="button" data-appearance="' + value + '" aria-pressed="' + (mode === value) + '"><span class="ws-rail-popover-icon"><svg viewBox="0 0 24 24" aria-hidden="true">' + paths[value] + '</svg></span><span>' + wsT('appearance.' + value, value === 'light' ? '白天模式' : '夜间模式') + '</span></button>').join('') + '</div>';
+  }
+
   function railHtml() {
     const button = (key, label, iconKey) => {
       const text = key === 'create' ? wsT('rail.home', label) : navLabel(key);
@@ -295,8 +307,10 @@
     const moreText = wsT('rail.more', '更多');
     const settingsText = wsT('settings', '设置');
     const noticeText = navLabel('notices');
+    /* 中文：模式属于页面外观而非导航页面，因此放在现有更多菜单末尾，不注册新的业务视图。
+     * English: Appearance is a preference rather than a destination, so append it to More without registering a business view. */
     const moreMenu = '<div class="ws-rail-more-wrap"><button class="ws-rail-button ws-rail-menu-button" type="button" data-rail-menu="more" aria-label="' + moreText + '" aria-expanded="false" title="' + moreText + '">' + railIcon('more') + '<span>' + moreText + '</span></button>' +
-      '<div class="ws-rail-popover ws-rail-more-popover" id="wsRailMoreMenu" hidden><div class="ws-rail-popover-title">' + moreText + '</div>' + more + '</div></div>';
+      '<div class="ws-rail-popover ws-rail-more-popover" id="wsRailMoreMenu" hidden><div class="ws-rail-popover-title">' + moreText + '</div>' + more + appearanceHtml() + '</div></div>';
     return '<div class="ws-rail-top">' + primary + '<div id="wsSidebarApps" class="ws-sidebar-apps"></div>' + moreMenu + '</div>' +
       '<div class="ws-rail-bottom">' +
         '<button class="ws-rail-button ws-rail-settings" type="button" data-rail-view="settings" aria-label="' + settingsText + '" title="' + settingsText + '">' + railIcon('settings') + '<span>' + settingsText + '</span></button>' +
@@ -326,7 +340,14 @@
       if (moreActive) moreButton.setAttribute('aria-current', 'page');
       else moreButton.removeAttribute('aria-current');
     }
-    if (moreMenu) moreMenu.hidden = !railMoreOpen;
+    if (moreMenu) {
+      moreMenu.hidden = !railMoreOpen;
+      /* 中文：每次展开菜单都从根元素读取实际模式，防止重开菜单后选中状态过期。
+       * English: Read the applied root mode when syncing the menu so reopening it cannot show a stale selection. */
+      moreMenu.querySelectorAll('[data-appearance]').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.appearance === (document.documentElement.dataset.appearance || 'light')));
+      });
+    }
     if (railMoreOpen) positionRailMoreMenu();
   }
 
@@ -346,6 +367,18 @@
   }
 
   function onRailMoreMenuClick(e) {
+    /* 中文：弹出菜单挂在 body 上，必须在其自身事件处理中接收点击；沿用配置保存与跨窗口同步，再立即应用配色。
+     * English: The popup is attached to body, so handle clicks here; reuse config persistence and cross-window sync, then apply colors immediately. */
+    const appearance = e.target.closest('button[data-appearance]');
+    if (appearance) {
+      if (typeof cfg !== 'undefined' && typeof saveCfg === 'function') {
+        cfg.appearance = appearance.dataset.appearance;
+        saveCfg();
+        if (typeof applyTheme === 'function') applyTheme();
+        syncRail();
+      }
+      return;
+    }
     const button = e.target.closest('button[data-rail-view]');
     if (!button) return;
     openWorkspaceView(button.dataset.railView);

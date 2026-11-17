@@ -164,3 +164,26 @@ html[data-desk-panel="add"] #addMask .modal-actions{margin-top:10px}
   html[data-desk-panel="add"] .add-cols{grid-template-columns:1fr}
   html[data-desk-panel="add"] .add-col-side{padding-left:0;border-left:0}
 }
+
+/* 中文：工作区体验样式含固定的浅色文字变量，夜间需映射到主题色，保证标题、提示与侧栏的可读性。
+ * English: Workspace experience styles contain fixed light-mode text tokens; map them to theme colors at night to keep headings, hints and the sidebar readable. */
+html[data-desk-panel][data-appearance="dark"]{
+  --ux-ink:var(--ink);--ux-muted:var(--ink-3);--ux-faint:var(--ink-4);
+  --ws-side:var(--bg-1);
+}
+/* 中文：需求池原有更具体的浅色侧栏规则，需要同等作用域的夜间覆盖。
+ * English: The requirement pool has a more specific light sidebar rule, requiring an equally scoped dark override. */
+html[data-desk-panel="workspace"][data-appearance="dark"]:is([data-workspace-view="history"],[data-workspace-view="workitems"]){--ws-side:var(--bg-1)}
+/* 中文：用分隔线区分导航和外观选项，并突出已选模式，避免只能凭背景判断当前状态。
+ * English: Separate appearance from navigation and highlight the selected mode instead of relying on page colors alone. */
+.ws-appearance-options{margin-top:5px;padding-top:5px;border-top:1px solid var(--line)}
+.ws-appearance-options button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+/* 中文：设置页旧样式使用固定颜色和 !important，夜间覆盖需保持对应优先级，防止残留白底或深字。
+ * English: Legacy settings styles use fixed colors and !important; match their priority to prevent white surfaces or dark text at night. */
+html[data-desk-panel="workspace"][data-appearance="dark"] #settingsPanel > .set-page-head{background:var(--bg-0)!important;border-color:var(--line)!important}
+html[data-desk-panel="workspace"][data-appearance="dark"] #settingsPanel > .set-page-head .set-page-title{color:var(--ink)!important}
+html[data-desk-panel="workspace"][data-appearance="dark"] #settingsPanel{background:var(--bg-1)!important}
+html[data-desk-panel="workspace"][data-appearance="dark"] #settingsPanel > .set-page-head .set-page-sub{color:var(--ink-3)!important}
+/* 中文：此按钮以正文色为背景，夜间正文变浅后，按钮文字需改用深背景色以维持对比。
+ * English: This button uses the text color as its background; use the dark surface color for its label when night mode makes that background light. */
+html[data-desk-panel="workspace"][data-appearance="dark"] .cp-recs-open{color:var(--bg-0)}

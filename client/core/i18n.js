@@ -21,6 +21,9 @@
   const KEY = 'locale';
   const DICT = {
     'zh-CN': {
+      // 中文：集中管理模式文案，切换语言时无需在菜单逻辑中硬编码。
+      // English: Keep appearance copy in the catalog so language changes need no hardcoded menu logic.
+      'appearance.label': '页面模式', 'appearance.light': '白天模式', 'appearance.dark': '夜间模式',
       "releaseNotes.title": "SoduWork {version} · 此版本新内容",
       "releaseNotes.updated": "SoduWork 已更新至 {version}",
       "releaseNotes.history": "查看历史更新",
@@ -98,6 +101,9 @@
       'models.noResults': '没有匹配“{query}”的服务或模型',
     },
     'en-US': {
+      // 中文：与中文目录使用相同键，保证英文界面和辅助技术标签同步翻译。
+      // English: Match the Chinese keys so English controls and accessibility labels translate together.
+      'appearance.label': 'Page appearance', 'appearance.light': 'Day mode', 'appearance.dark': 'Night mode',
       "releaseNotes.title": "What’s new in SoduWork {version}",
       "releaseNotes.updated": "SoduWork has been updated to {version}",
       "releaseNotes.history": "View release history",

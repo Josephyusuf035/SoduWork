@@ -357,3 +357,14 @@ body.dragging-window,body.dragging-window *{
 .ws-chat-more::after,.cp-more-button::after,.cp-tool::after,.cp-modelbtn::after,.wc-send::after,
 .wc-context-button::after,.nqueue-add-dock button::after,.nchat-jump-latest::after,
 .ncollab-dossier-action::after{content:'';position:absolute;inset:-7px;border-radius:inherit}
+
+/* 中文：外观与桌宠材质、皮肤主题分开保存；覆盖共享色彩变量让组件统一变暗，color-scheme 同时适配原生控件。
+ * English: Store appearance separately from pet material and skin theme; override shared colors for consistent dark surfaces and use color-scheme for native controls. */
+html[data-appearance="light"]{color-scheme:light}
+html[data-appearance="dark"]{
+  color-scheme:dark;
+  --ink:#e8ecf3;--ink-2:#cdd4df;--ink-3:#abb5c5;--ink-4:#929eaf;--ink-5:#7f8a9c;
+  --bg-0:#1b1f28;--bg-1:#222733;--bg-2:#2b3240;--bg-3:#353e4e;
+  --line:rgba(210,222,242,.15);--line-2:rgba(210,222,242,.09);--line-3:rgba(210,222,242,.23);
+  --accent:#8baaff;--accent-hover:#adc3ff;--accent-soft:rgba(139,170,255,.12);--accent-soft-2:rgba(139,170,255,.2);
+}

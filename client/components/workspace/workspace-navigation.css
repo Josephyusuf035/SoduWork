@@ -95,11 +95,13 @@ html[data-desk-panel="workspace"][data-workspace-layout="utility"] .ws-resizer{d
   box-shadow:0 16px 38px -18px rgba(24,39,64,.38);color:var(--ink);z-index:1200}
 .ws-rail-popover[hidden]{display:none}
 .ws-rail-popover-title{padding:5px 9px 7px;color:var(--ink-4);font-size:max(var(--font-min-readable, 14.5px), 11px);font-weight:650;letter-spacing:.08em}
-.ws-rail-popover>button{appearance:none;width:100%;height:36px;display:flex;align-items:center;gap:9px;padding:0 9px;border:0;border-radius:8px;background:transparent;color:var(--ink-2);font:400 14.5px/1 var(--font-ui);text-align:left;cursor:pointer}
-.ws-rail-popover>button:hover{background:var(--accent-soft);color:var(--accent)}
-.ws-rail-popover>button:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 58%,transparent);outline-offset:-2px}
+/* 中文：模式按钮嵌套在分组中，复用菜单按钮样式，保证尺寸、悬停和键盘焦点一致。
+ * English: Appearance buttons live in a nested group; share menu styles for consistent sizing, hover and keyboard focus. */
+.ws-rail-popover>button,.ws-appearance-options>button{appearance:none;width:100%;height:36px;display:flex;align-items:center;gap:9px;padding:0 9px;border:0;border-radius:8px;background:transparent;color:var(--ink-2);font:400 14.5px/1 var(--font-ui);text-align:left;cursor:pointer}
+:is(.ws-rail-popover>button,.ws-appearance-options>button):hover{background:var(--accent-soft);color:var(--accent)}
+:is(.ws-rail-popover>button,.ws-appearance-options>button):focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 58%,transparent);outline-offset:-2px}
 .ws-rail-popover-icon{display:grid;place-items:center;width:22px;height:22px;color:color-mix(in srgb,var(--ink-3) 50%,var(--ink-4))}
-.ws-rail-popover>button:hover .ws-rail-popover-icon{color:var(--accent)}
+:is(.ws-rail-popover>button,.ws-appearance-options>button):hover .ws-rail-popover-icon{color:var(--accent)}
 .ws-rail-popover-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;shape-rendering:geometricPrecision;overflow:visible}
 @media(prefers-reduced-motion:reduce){.ws-rail-button{transition:none}}
 .ws-side{position:relative;z-index:90;min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--ws-side);
@@ -345,11 +347,13 @@ html[data-desk-panel="workspace"][data-workspace-view="create"] .ws-side{
 html[data-desk-panel="workspace"][data-workspace-view="create"] .ws-side .ws-recent{
   background:transparent
 }
-/* Conversation history and its page share one frame, with a square internal split. */
+/* 中文：会话侧栏是透明的，实际背景来自这个共用底板；使用主题变量，避免夜间仍显示写死的白底。
+ * English: The conversation sidebar is transparent and reveals this shared frame; theme tokens prevent a fixed white background in dark mode.
+ * Conversation history and its page share one frame, with a square internal split. */
 html[data-desk-panel="workspace"][data-workspace-layout="conversation"] .workspace-shell::before{
   content:"";position:absolute;z-index:1;left:var(--ws-rail-w,52px);right:var(--ws-frame-right);top:var(--ws-frame-top);bottom:var(--ws-frame-bottom);
   box-sizing:border-box;border:1px solid color-mix(in srgb,var(--line) 88%,transparent);
-  border-radius:var(--ws-frame-radius);background:#fdfdfd;
+  border-radius:var(--ws-frame-radius);background:color-mix(in srgb,var(--bg-0) 99%,var(--bg-1));
   box-shadow:0 8px 28px -24px rgba(30,45,70,.28);pointer-events:none
 }
 html[data-desk-panel="workspace"][data-workspace-layout="conversation"] .workspace-shell::after{

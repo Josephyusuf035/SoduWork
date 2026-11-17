@@ -934,6 +934,9 @@ const applyTheme=()=>{
    * settings.
    */
   if(cfg.character==='flatcube'){ cfg.character='bear'; if(typeof saveCfg==='function'){ try{ saveCfg(); }catch(e){} } }
+  /* 中文：将保存的外观映射到根元素，供 CSS 和菜单共享；缺省或未知值回退白天，不改变原有皮肤主题字段。
+   * English: Expose persisted appearance on the root for CSS and the menu; default unknown values to light without changing the skin theme field. */
+  el.setAttribute('data-appearance',cfg.appearance==='dark'?'dark':'light');
   el.setAttribute('data-theme',cfg.theme||'vivid');
   el.setAttribute('data-tube',cfg.tube||'glass');
   /*
