@@ -5,7 +5,7 @@ unassigned devices. Client.user_ref determines device ownership.
 from datetime import datetime, timedelta, timezone
 import logging
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy import case, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,6 +43,7 @@ from ..services import inbox as inbox_svc
 from ..services import poller
 from ..services import rbac
 from ..services import client_access
+from ..services import email_auth
 from ..services import storage
 from ..services import tasks as svc
 from ..services import work_catalog
@@ -84,7 +85,16 @@ async def _me_payload(session: AsyncSession, user: User) -> dict:
 
 
 @router.post("/login")
-async def login(body: AdminLogin, session: AsyncSession = Depends(get_session)):
+async def login(body: AdminLogin, request: Request,
+                session: AsyncSession = Depends(get_session)):
+    # Apply the shared password budget to the highest-privilege credential endpoint. Without it,
+    # /admin/login accepts unlimited guesses and burns a PBKDF2 verification on every attempt.
+    try:
+        await email_auth.password_budget(
+            session, "admin:" + str(body.user or "").strip().lower(),
+            "admin-login:" + str((request.client.host if request.client else "") or "unknown"))
+    except client_access.ClientAccessError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail()) from exc
     user = await client_access.find_login_user(session, body.user, legacy_lookup=rbac.get_user_by_username)
     if user is None or not user.is_active or user.account_deleted_at or not verify_password(body.pw, user.password_hash):
         raise HTTPException(status_code=401, detail="账号或密码不正确")
