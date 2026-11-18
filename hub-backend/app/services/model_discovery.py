@@ -18,9 +18,15 @@ MAX_MODELS = 500
 
 def _headers(kind: str, key: str) -> dict:
     if kind == "anthropic":
-        return {"x-api-key": key, "anthropic-version": "2023-06-01",
-                "Accept": "application/json"}
-    return {"Authorization": "Bearer " + key, "Accept": "application/json"}
+        headers = {"Accept": "application/json"}
+        if key:
+            headers["x-api-key"] = key
+            headers["anthropic-version"] = "2023-06-01"
+        return headers
+    headers = {"Accept": "application/json"}
+    if key:
+        headers["Authorization"] = "Bearer " + key
+    return headers
 
 
 def _paths(kind: str) -> tuple[str, ...]:
@@ -57,12 +63,17 @@ def _names(payload) -> list[str]:
     return names
 
 
-async def discover(base: str, key: str, kind: str = "openai-compat") -> dict:
-    """Return {"ok", "models", "path", "detail"}; never raises for upstream shape."""
+async def discover(base: str, key: str, kind: str = "openai-compat",
+                   *, allow_empty_key: bool = False) -> dict:
+    """Return {"ok", "models", "path", "detail"}; never raises for upstream shape.
+
+    allow_empty_key lets keyless local gateways through; org providers keep
+    requiring a credential because their stored key is never legitimately empty.
+    """
     base = str(base or "").strip().rstrip("/")
     if not base.startswith(("http://", "https://")):
         return {"ok": False, "models": [], "detail": "先填写以 http(s):// 开头的服务地址"}
-    if not str(key or "").strip():
+    if not str(key or "").strip() and not allow_empty_key:
         return {"ok": False, "models": [], "detail": "先配置组织密钥"}
     client = httpx.AsyncClient(trust_env=False, follow_redirects=False,
                                timeout=httpx.Timeout(TIMEOUT_SECONDS))
