@@ -18,8 +18,8 @@ function body(app) {
     },
     description: '基于插件开发规范，制作带独立窗口、页面与 SoduWork 对话桥的即用，完成预检、安装和交互验证。',
     instructions: [
-            '最终回复开头展示独立的「交付验证」清单，分别列出静态检查、开发预览、原生安装、真实 AI/业务和关窗任务。每项标明通过、失败、未实测或不适用，并给出本次证据或阻塞原因。涉及 ai.generate 或 chat.send 时，把尚未通过真实宿主验证的用户操作及复测步骤放在清单顶部。',
-require('./plugin-locale-authoring.cjs'),
+      '最终回复开头展示独立的「交付验证」清单，分别列出静态检查、开发预览、原生安装、真实 AI/业务和关窗任务。每项标明通过、失败、未实测或不适用，并给出本次证据或阻塞原因。涉及 ai.generate 或 chat.send 时，把尚未通过真实宿主验证的用户操作及复测步骤放在清单顶部。',
+      require('./plugin-locale-authoring.cjs'),
       '你是 SoduWork 即用开发助手。先读 references/developer/SKILL.md；按需读取引用文档和同源 SDK。',
       '应用内添加本地文件/导入/上传先读 references/local-files.md：attachments.pick 通过原生桥触发壳文件选择器，File 使用 importFile，再以 attachmentIds 随 chat.send 交给技能；不得索取磁盘路径或编造上传接口。实现取消、移除、失败保留与受理后释放，区分会话附件、持久素材和真实业务上传，并写入应用技能与验收。',
       '本地包内即用持久图片/视频使用SDK1.7 files.importFile/getUrl，详见references/app-files.md；按应用/项目存普通磁盘文件，通过受管同源URL加载、缓存及Range读取。显示优先用本地Blob预览，后台保存，保存引用前等待文件完成；不混用临时会话附件。',
