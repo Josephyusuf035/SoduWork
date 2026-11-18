@@ -3,6 +3,7 @@ import test from 'node:test'
 import React from 'react'
 import { createComponentHarness } from './helpers/react-harness.mjs'
 import { setLocale } from '../src/i18n.js'
+import { compareModelProviders } from '../src/screens/model-provider-order.js'
 
 const Modal = () => null, SelectMenu = () => null
 const ui = { Modal, SelectMenu, Confirm: () => null, Icon: () => null, Loading: () => null, ErrorState: () => null, toast() {} }
@@ -22,7 +23,7 @@ test('editing a model preserves native vision and unrelated config; both routing
       config: { imageRouting: 'native', thinkingMode: 'controllable', thinkingFormat: 'qwen', thinkingLevelMap: { high: 'high' } } }, onClose() {}, onSaved() {} },
     dependencies: { '../api.js': { api: { saveModelDef: async data => saved.push(data) } }, '../ui.jsx': ui,
       './LlmSettings.jsx': { default: () => null }, './ModelRuntime.jsx': { default: () => null }, './model-catalog-actions.css': {},
-      './ModelCapabilities.jsx': capabilities, './model-capabilities.css': {} },
+      './ModelCapabilities.jsx': capabilities, './model-capabilities.css': {}, './model-provider-order.js': { compareModelProviders } },
   })
   t.after(() => { page.unmount(); setLocale('zh-CN') })
   const field = () => page.nodes(node => node.type === SelectMenu && node.props.id === 'model-image-routing')[0]
@@ -53,7 +54,7 @@ async function form(t, initial = null) {
     props: { providerId: 'company', initial, onClose() {}, onSaved() {} },
     dependencies: { '../api.js': { api: { saveModelDef: async data => saved.push(data) } }, '../ui.jsx': { ...ui, toast: text => errors.push(text) },
       './LlmSettings.jsx': { default: () => null }, './ModelRuntime.jsx': { default: () => null }, './model-catalog-actions.css': {},
-      './ModelCapabilities.jsx': capabilities, './model-capabilities.css': {} },
+      './ModelCapabilities.jsx': capabilities, './model-capabilities.css': {}, './model-provider-order.js': { compareModelProviders } },
   })
   t.after(() => { page.unmount(); setLocale('zh-CN') })
   const change = (id, value) => page.act(() => page.nodes(n => n.props.id === id)[0].props.onChange({ target: { value } }))
@@ -102,7 +103,7 @@ async function catalogPage(t, getCatalog) {
   const page = await createComponentHarness(new URL('../src/screens/ModelCatalog.jsx', import.meta.url), {
     dependencies: { '../api.js': { api: { modelCatalog: async () => structuredClone(await getCatalog()) } }, '../ui.jsx': ui,
       './LlmSettings.jsx': () => null, './ModelRuntime.jsx': () => null, './model-catalog-actions.css': {},
-      './ModelCapabilities.jsx': capabilities, './model-capabilities.css': {} },
+      './ModelCapabilities.jsx': capabilities, './model-capabilities.css': {}, './model-provider-order.js': { compareModelProviders } },
   })
   t.after(() => page.unmount())
   page.render()

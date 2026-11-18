@@ -5,6 +5,7 @@ import { useViewportHeight } from '../viewport-height.js'
 import { Loading, ErrorState, Icon, Modal, Confirm, toast, SelectMenu } from '../ui.jsx'
 import LlmSettings from './LlmSettings.jsx'
 import ModelRuntime from './ModelRuntime.jsx'
+import { compareModelProviders } from './model-provider-order.js'
 import './model-catalog-actions.css'
 import { CAPABILITY_LABELS, CAPABILITY_STATES, CapabilityBadges, ModelCapabilityStatus } from './ModelCapabilities.jsx'
 import './model-capabilities.css'
@@ -134,8 +135,7 @@ export default function ModelCatalog() {
   const byP = (pid) => models.filter((m) => m.providerId === pid)
   // Keep the newly created service in view for this visit without changing the saved catalog order.
   const providers = (d?.providers || []).slice().sort((a, b) =>
-    Number(b.id === newProviderId) - Number(a.id === newProviderId) ||
-    (b.enabled - a.enabled) || (b.builtin - a.builtin) || a.name.localeCompare(b.name))
+    compareModelProviders(a, b, newProviderId))
   useEffect(() => {
     if (!pendingProviderFocus.current || !d?.providers?.some(p => p.id === pendingProviderFocus.current)) return
     const card = listRef.current?.querySelector('.model-provider.is-new-provider')
