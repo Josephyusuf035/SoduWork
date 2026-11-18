@@ -158,6 +158,22 @@ app.whenReady().then(async () => {
         assert.equal(await js('calls.filter(row=>row.kind==="send").length'), 1, 'Reopening review never sends another turn automatically');
       }
       assert.deepEqual(await js('errors'), []);
+      if (runtime === 'pi' && mode === 'auto' && availability === 'exists') {
+        await js(`document.querySelector('#nchatInput').value='Keep my unrelated draft';void 0;`);
+        assert.equal(await js(`TaskTraceApproval.openAcceptance(task,{approvalId:'approval-'+task.id,acceptanceMode:'auto',startAcceptance:true})`), true);
+        assert.equal(await js(`calls.filter(row=>row.kind==='send').length`), 2);
+        assert.match(await js(`calls.filter(row=>row.kind==='send').at(-1).text`), /自动验收/);
+        assert.equal(await js(`document.querySelector('#nchatInput').value`), 'Keep my unrelated draft');
+        assert.equal(await js(`TaskTraceApproval.openAcceptance(task,{approvalId:'approval-'+task.id,acceptanceMode:'auto',startAcceptance:true})`), true);
+        assert.equal(await js(`calls.filter(row=>row.kind==='send').length`), 2, 'Repeated start shares the accepted submission');
+        await js(`NativeChat.reset();calls=[];catalogMode='reject';void 0;`);
+        const start = `TaskTraceApproval.openAcceptance(task,{approvalId:'approval-'+task.id,acceptanceMode:'auto',startAcceptance:true,acceptanceInstruction:'Fresh automatic review'})`;
+        await assert.rejects(js(start), /验收会话未能打开|自动验收未能提交/);
+        assert.equal(await js(`calls.filter(row=>row.kind==='send').length`), 0);
+        await js(`catalogMode='ok';void 0;`);
+        assert.equal(await js(start), true, 'A failed startup must remain retryable');
+        assert.equal(await js(`calls.filter(row=>row.kind==='send').length`), 1);
+      }
       report.checks.push({ runtime, mode, archive: availability, ok: true });
       console.log('PASS ' + id);
     }

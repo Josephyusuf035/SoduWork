@@ -97,7 +97,8 @@
     // Serialize changed choices for an approval without opening conversations concurrently.
     // Only identical mode, note and file choices share a completed or pending request.
     const epoch = acceptanceEpoch, key = [id, approvalId, epoch].join(':');
-    const signature = JSON.stringify([mode, acceptanceInstruction, [...acceptanceAttachmentIds].sort()]);
+    const startAcceptance = mode === 'auto' && opts.startAcceptance === true;
+    const signature = JSON.stringify([mode, acceptanceInstruction, [...acceptanceAttachmentIds].sort(), startAcceptance]);
     const inFlight = acceptanceOpens.get(key);
     if (inFlight?.signature === signature) return inFlight.promise;
     const recent = recentAcceptanceOpens.get(key);
@@ -163,7 +164,7 @@
          */
         acceptanceSession: !reuseExecutionSession,
         ...(reuseExecutionSession ? {chatId: originalId, reuseExecutionSession: true, acceptanceExecutionSession: true} : {}),
-        acceptanceMode: mode, approvalId,
+        acceptanceMode: mode, approvalId, startAcceptance,
         acceptanceInstruction,
         ...(context?.requirementTimeline ? {requirementTimeline:context.requirementTimeline} : {}),
         ...(acceptanceAttachmentIds.length ? {acceptanceAttachmentIds} : {}),
@@ -573,7 +574,7 @@
       await openAcceptance({id: taskId, title: state?.opts?.taskTitle || ''}, {
         acceptanceMode: button.getAttribute('data-tfd-acceptance-session') === 'auto' ? 'auto' : 'manual',
         acceptanceInstruction: String(block.querySelector('[data-tfd-approval-note]')?.value || '').trim(),
-        approvalId: id, onOpened: state?.opts?.onAcceptanceOpened,
+        approvalId: id, startAcceptance: true, onOpened: state?.opts?.onAcceptanceOpened,
       });
       dismissAcceptanceCard(block, state, {
         decision: button.getAttribute('data-tfd-acceptance-session') === 'auto' ? 'auto' : 'manual',

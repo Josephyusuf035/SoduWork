@@ -389,6 +389,21 @@
     }
   }
 
+  async function _submitAcceptance(opts, task, label) {
+    if (opts.startAcceptance !== true || opts.acceptanceMode !== 'auto') return;
+    // Navigation carries this one-shot intent; restored session options do not.
+    // Use explicit review text so a retained unrelated draft is never submitted.
+    const text = acceptanceDraft(task, 'auto', opts);
+    const ref = ctx._ref;
+    const accepted = await ctx._send(text, { taskId: task.id, taskTitle: label });
+    if (!accepted) throw new Error('自动验收未能提交，请检查会话中的错误后重试');
+    const input = ctx._mount()?.querySelector('#nchatInput');
+    if (ctx._ref === ref && input?.isConnected && input.value === text) {
+      input.value = '';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
   async function _loadCollabTask(taskId) {
     const id = String(taskId || '');
     const entry = ctx._collabTasks.get(id);
@@ -840,6 +855,7 @@
       _activateAcceptanceContext(opts, taskSnapshot, label);
       ctx._taskOpenPending = false;
       ctx._render();
+      await _submitAcceptance(opts, taskSnapshot, label);
       if (opts.reworkSession) _prefillReworkInput(taskSnapshot, label);
       return true;
     }
@@ -1021,6 +1037,7 @@
       }
       if (seq !== ctx._taskOpenSeq || !current()) return false;
       _activateAcceptanceContext(opts,acceptanceTask,label);
+      await _submitAcceptance(opts, acceptanceTask, label);
     }
     const newReworkSession = opts.reworkSession === true && (opts.forceNew === true || recoverDeletedRework);
     if (newReworkSession) {
