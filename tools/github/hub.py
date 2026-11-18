@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import gzip
+import http.client
 import json
 import re
 import secrets
@@ -12,6 +13,13 @@ import urllib.request
 import uuid
 
 from release import ROOT, expected, require
+
+# Readiness probes go through urllib, which raises http.client.HTTPException
+# subclasses (e.g. IncompleteRead, RemoteDisconnected) when a peer closes a
+# connection early or truncates a response.  These are transient, just like
+# OSError, and must be retried instead of aborting the whole acceptance run.
+TRANSIENT_ERRORS = (OSError, ValueError, subprocess.CalledProcessError,
+                    http.client.HTTPException)
 
 
 def docker(*args, output=False):
@@ -25,7 +33,7 @@ def wait(check, seconds=180):
     while time.monotonic() < end:
         try:
             return check()
-        except (OSError, ValueError, subprocess.CalledProcessError):
+        except TRANSIENT_ERRORS:
             if time.monotonic() >= end:
                 raise
             time.sleep(2)
