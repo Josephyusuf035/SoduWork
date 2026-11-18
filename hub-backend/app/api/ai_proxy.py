@@ -104,7 +104,7 @@ def _upstream_message(status: int, detail: str, *, responses: bool = False) -> s
         return "模型服务当前繁忙或额度受限，请稍后重试"
     hint = {
         401: "密钥不对或已过期",
-        403: "这把密钥没有这个模型的权限",
+        403: "请核对供应商的模型权限、API Key 类型和接口地址，或切换可用模型",
         404: "网关地址、模型名或接口不对" if responses else "网关地址或模型名不对",
         405: "当前模型网关尚未开放 Responses 接口",
     }.get(status, "")
