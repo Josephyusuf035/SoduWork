@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import automation_models as am
+from ..config import get_settings
 from ..db import SessionLocal, get_session
 from ..deps import current_client, require_perm, identity_only
 from ..models import AppSetting, Client, User
@@ -160,8 +161,14 @@ async def _auth(token: str, peer: str, device: str = "", secret: str = "",
         matched = bool(token) and hmac.compare_digest(token, want)
         return (matched, "" if matched else "执行机令牌不对")
     # Without configured credentials, permit only loopback connections for local development Runners.
-    if peer in _LOCAL_HOSTS:
+    # A production Hub normally sits behind a same-host reverse proxy, so every remote peer is
+    # reported as loopback. Trusting the socket peer there would accept unauthenticated Runners
+    # from the network, so credential-free loopback access stays a development-only path.
+    if peer in _LOCAL_HOSTS and get_settings().is_dev:
         return True, ""
+    if peer in _LOCAL_HOSTS:
+        return False, ("执行机令牌未配置：生产环境不允许仅凭回环地址接入执行机，"
+                       "请为执行机配置独立密钥或 runner_token")
     return False, "还没配执行机令牌（管理端→设置里配 runner_token），远程执行机连不进来"
 
 

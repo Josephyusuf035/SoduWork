@@ -57,6 +57,10 @@ async def webhook(
     """
     token = request.headers.get("X-Ingest-Token") or request.headers.get("X-Gitlab-Token")
     integ = await _integration_by_token(session, token)
+    # The path segment is part of the webhook contract. Reject a token used against another
+    # integration so routing and audit records cannot disagree with the URL that was called.
+    if str(integ.id) != str(integration_id):
+        raise HTTPException(status_code=404, detail="集成不存在")
     raw = await request.body()
     conn = get_connector(integ.type)
     if conn is not None and hasattr(conn, "parse_webhook"):
