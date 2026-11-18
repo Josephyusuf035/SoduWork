@@ -8,6 +8,24 @@ from io import BytesIO
 
 from ..config import get_settings
 
+# Characters kept verbatim in local file names; everything else (including the
+# key separators) is percent-encoded so the mapping stays injective and names
+# never contain path, drive-letter (NTFS ADS), or control characters.
+_LOCAL_SAFE = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
+_LOCAL_UNSAFE = object()
+
+
+def _local_char(character):
+    if character in _LOCAL_SAFE:
+        return character
+    return "%" + character.encode("utf-8").hex().upper()
+
+
+def local_name(key: str) -> str:
+    """Map a storage key to one injective, filesystem-safe local file name."""
+    return "".join(_local_char(character) for character in str(key or ""))
+
 # Local fallback directory: hub-backend/uploads/.
 _LOCAL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
 
@@ -41,8 +59,11 @@ def _client():
 
 def _local_path(key: str) -> str:
     os.makedirs(_LOCAL_DIR, exist_ok=True)
-    safe = key.replace("/", "__").replace("\\", "__")
-    return os.path.join(_LOCAL_DIR, safe)
+    # Percent-encode the whole key: the previous separator-only replacement was
+    # not injective ("a/b" and "a__b" collapsed onto one file, silently
+    # returning the wrong object), and it kept ":" which Windows treats as an
+    # NTFS alternate-data-stream separator.
+    return os.path.join(_LOCAL_DIR, local_name(key))
 
 
 def put(key: str, data: bytes, content_type: str) -> str:
