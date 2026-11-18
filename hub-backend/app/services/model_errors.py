@@ -89,7 +89,8 @@ def public_failure(value) -> str:
     if status == 404:
         return "模型服务地址或模型不存在" + suffix + "；请切换可用模型，或联系管理员核对服务地址与模型名称。"
     if status == 403:
-        return "模型请求被拒绝" + suffix
+        return ("模型请求被拒绝" + suffix +
+                "；请核对供应商的模型权限、API Key 类型和接口地址，或切换可用模型。")
     if status == 401:
         return "模型服务拒绝了当前凭据或模型权限" + suffix + "；请检查模型授权或切换有权限的模型。"
     if status == 429:
