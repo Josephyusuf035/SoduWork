@@ -19,6 +19,7 @@ Your first run has four steps: install the prerequisites, extract the source, st
    | Linux desktop | Open a terminal in this folder and run `sh start.sh --desktop` |
 
 4. On first run, choose your own password for **`admin`**, using **12–128 characters**, then confirm it. Typing is hidden: no characters or asterisks appear. Press Enter after typing. A mistake prompts you to try again without closing the window. Later starts keep the existing password.
+   The password is requested **before** dependencies and the desktop runtime are prepared. If that preparation fails (for example because the network cannot reach a download host) and the administrator account has not been created, the next run asks for the password again. On a restricted network, run `start.cmd --prepare-only --desktop` (PowerShell: `.\start.cmd --prepare-only --desktop`; macOS/Linux: `sh start.sh --prepare-only --desktop`) to download and build first, then start normally and choose the password.
 5. Keep the window open. The launcher installs dependencies, builds the management UI, prepares the database, and opens the client. Initial downloads can take several minutes. Long steps print a status message about every 15 seconds; the printed `startup.log` path contains the details.
 
 You do not need to create a database, install Docker or Git, prepare an `.env` file, or install each project separately. First-time setup needs internet access; later starts reuse completed work.
