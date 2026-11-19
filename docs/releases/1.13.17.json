@@ -1,0 +1,566 @@
+{
+  "version": "1.13.17",
+  "previousTag": "v1.13.16",
+  "sourceCommit": "3bc79e0a5f564169b265f6cc848a8eb9cff326ca",
+  "previousCommit": "4bba5a819a7027efb5045ee255275185a68b52a1",
+  "publishedAt": "2026-11-16T12:34:22Z",
+  "locales": {
+    "zh-CN": {
+      "summary": "本次更新重点改善新对话工作区、个人记忆、Kimi 使用体验，以及对话执行和账号状态的可靠性。",
+      "sections": [
+        {
+          "id": "features",
+          "title": "功能更新",
+          "items": [
+            {
+              "id": "new-chat-workspace",
+              "text": "新建对话默认使用独立工作目录，不再自动沿用上一段对话的文件夹；明确选择项目文件夹时仍可共享。"
+            },
+            {
+              "id": "personal-memory",
+              "text": "个人记忆支持 Markdown 预览和源码编辑；自动记忆会过滤执行底座的身份描述，并清理旧的自动身份摘要，保留手动记录。"
+            },
+            {
+              "id": "runtime-options",
+              "text": "移除 Google Harness2 和 Claude Code 执行底座的选择与安装入口。已有对话历史仍可查看；继续执行时需选择受支持的底座。"
+            }
+          ]
+        },
+        {
+          "id": "fixes",
+          "title": "缺陷修复",
+          "items": [
+            {
+              "id": "kimi-file-read",
+              "text": "修复 Kimi 等底座读取文件时默认只拿到前 2000 行的问题，避免编辑后遗漏文件尾部；超出读取限制时会明确报错。"
+            },
+            {
+              "id": "kimi-interaction",
+              "text": "修复 Kimi 流式回复的段落丢失、无需密钥的本地模型无法启动，以及用户选择题被当作权限确认的问题；选择题会等待用户作答。"
+            },
+            {
+              "id": "execution-status",
+              "text": "修复执行进程退出、输出截断和上下文恢复时的状态判断：保留真实失败原因，避免历史回放或切换底座后把完成任务误标为失败，并在旧进程结束后再恢复执行。"
+            },
+            {
+              "id": "agent-probes",
+              "text": "修复智能体连接测试对空白字符和 Unicode 内容的解析，并识别被截断的回复，避免把未完成的测试误判为成功。"
+            },
+            {
+              "id": "secure-connections",
+              "text": "修复打包后的执行器在模型网关连接和托管下载时出现的证书信任问题，保留证书校验及显式配置的信任设置。"
+            },
+            {
+              "id": "mac-hub-credentials",
+              "text": "修复 macOS 上某个 Hub 的设备凭据无法读取时，其他 Hub 也被一并阻止的问题；原凭据保留，不自动重置。"
+            },
+            {
+              "id": "file-icons",
+              "text": "修复系统文件图标读取失败时，资料库或对话附件显示空白图标、异常扩展名的问题，改用文档和文件夹备用图标。"
+            },
+            {
+              "id": "organization-models",
+              "text": "组织统一管理的模型服务在客户端改为只读，地址、密钥和模型目录由管理员维护；个人服务仍可编辑，旧的个人覆盖配置不再影响组织服务。"
+            },
+            {
+              "id": "account-controls",
+              "text": "停用账号时结束该账号的登录会话，保留设备身份和历史记录；修复清空用户角色不生效，以及账号状态失效后仍尝试启动任务的问题。"
+            },
+            {
+              "id": "acceptance-guidance",
+              "text": "自动验收缺少前置条件时，刷新后仍保留具体原因和处理提示，同时保留人工验收入口。"
+            },
+            {
+              "id": "chat-layout",
+              "text": "统一聊天输入区的 AI 提示、执行底座图标尺寸和间距，修复提示文字与输入区域挤在一起的问题。"
+            }
+          ]
+        }
+      ]
+    },
+    "en-US": {
+      "summary": "This update improves new-chat workspaces, personal memory, Kimi interactions, and the reliability of execution and account status.",
+      "sections": [
+        {
+          "id": "features",
+          "title": "Feature updates",
+          "items": [
+            {
+              "id": "new-chat-workspace",
+              "text": "New chats use their own working directory instead of inheriting the previous chat’s folder. Explicitly selected project folders can still be shared."
+            },
+            {
+              "id": "personal-memory",
+              "text": "Personal memory now supports Markdown preview and source editing. Automatic memory filters runtime identity descriptions and retires old automatic identity summaries while preserving manual notes."
+            },
+            {
+              "id": "runtime-options",
+              "text": "Google Harness2 and Claude Code are no longer offered as execution runtimes or installation options. Existing conversation history remains readable; select a supported runtime to continue execution."
+            }
+          ]
+        },
+        {
+          "id": "fixes",
+          "title": "Bug fixes",
+          "items": [
+            {
+              "id": "kimi-file-read",
+              "text": "Fixed file reads through runtimes such as Kimi returning only the first 2,000 lines by default, which could lose trailing content during edits. Files exceeding the read limit now fail explicitly."
+            },
+            {
+              "id": "kimi-interaction",
+              "text": "Fixed lost paragraph breaks in Kimi streaming replies, startup with local models that need no API key, and questions being treated as permission prompts. Questions now wait for the user’s answer."
+            },
+            {
+              "id": "execution-status",
+              "text": "Improved execution status handling during process exit, output truncation and context recovery. Real failure reasons are retained, completed tasks are not incorrectly marked failed after history replay or runtime switches, and recovery waits for the old process to finish."
+            },
+            {
+              "id": "agent-probes",
+              "text": "Fixed agent connection tests parsing whitespace and Unicode content, and detect truncated replies so unfinished tests are not reported as successful."
+            },
+            {
+              "id": "secure-connections",
+              "text": "Fixed certificate trust problems in the packaged Runner when connecting to model gateways or performing managed downloads, while retaining certificate verification and explicitly configured trust settings."
+            },
+            {
+              "id": "mac-hub-credentials",
+              "text": "Fixed an unreadable device credential for one Hub blocking other Hubs on macOS. Existing credentials are preserved and are not automatically reset."
+            },
+            {
+              "id": "file-icons",
+              "text": "Fixed blank icons and stray extension text in the library and chat attachments when system file icons cannot be loaded. Document and folder fallback icons remain visible."
+            },
+            {
+              "id": "organization-models",
+              "text": "Organization-managed model services are now read-only in the client. Administrators maintain their addresses, keys and model catalogs; personal services remain editable, and old personal overrides no longer affect organization services."
+            },
+            {
+              "id": "account-controls",
+              "text": "Disabling an account now ends its login sessions while preserving device identity and history. Fixed clearing a user’s role having no effect and tasks starting with an inactive account state."
+            },
+            {
+              "id": "acceptance-guidance",
+              "text": "When automatic acceptance is missing prerequisites, its reason and guidance now remain visible after refresh, and manual acceptance remains available."
+            },
+            {
+              "id": "chat-layout",
+              "text": "Aligned AI notices, runtime icon sizes and spacing in the chat composer, fixing notice text crowding the input area."
+            }
+          ]
+        }
+      ]
+    },
+    "ja-JP": {
+      "summary": "新しいチャットの作業フォルダー、個人メモリー、Kimi の操作性を改善し、会話実行とアカウント状態の扱いを修正しました。",
+      "sections": [
+        {
+          "id": "features",
+          "title": "機能更新",
+          "items": [
+            {
+              "id": "new-chat-workspace",
+              "text": "新しいチャットは前のチャットのフォルダーを引き継がず、専用の作業フォルダーを使用します。明示的に選択したプロジェクトフォルダーは引き続き共有できます。"
+            },
+            {
+              "id": "personal-memory",
+              "text": "個人メモリーに Markdown プレビューとソース編集を追加しました。自動記憶から実行エンジンの自己紹介を除外し、過去の自動生成された自己紹介も整理します。手動の記録は保持されます。"
+            },
+            {
+              "id": "runtime-options",
+              "text": "Google Harness2 と Claude Code の実行エンジン選択・インストール項目を削除しました。既存の会話履歴は引き続き閲覧できます。実行を続けるには対応するエンジンを選択してください。"
+            }
+          ]
+        },
+        {
+          "id": "fixes",
+          "title": "不具合修正",
+          "items": [
+            {
+              "id": "kimi-file-read",
+              "text": "Kimi などのエンジンで、ファイル読み取りが標準で先頭 2,000 行に制限され、編集時に末尾が欠落する問題を修正しました。読み取り上限を超えるファイルには明確なエラーを表示します。"
+            },
+            {
+              "id": "kimi-interaction",
+              "text": "Kimi のストリーミング回答で段落が失われる問題、API キー不要のローカルモデルで起動できない問題、選択式の質問が権限確認として扱われる問題を修正しました。質問はユーザーの回答を待ちます。"
+            },
+            {
+              "id": "execution-status",
+              "text": "プロセス終了、出力の切り詰め、コンテキスト復旧時の状態判定を修正しました。実際の失敗理由を保持し、履歴の再読込やエンジン切替で完了済みタスクを誤って失敗と表示しないようにしました。復旧は旧プロセスの終了を待って行います。"
+            },
+            {
+              "id": "agent-probes",
+              "text": "エージェントの接続テストで空白文字や Unicode を正しく解析するよう修正しました。途中で切れた回答を検出し、未完了のテストを成功と判定しないようにしました。"
+            },
+            {
+              "id": "secure-connections",
+              "text": "パッケージ版 Runner のモデルゲートウェイ接続や管理対象のダウンロードで発生する証明書の信頼問題を修正しました。証明書検証と明示的な信頼設定は維持されます。"
+            },
+            {
+              "id": "mac-hub-credentials",
+              "text": "macOS で一つの Hub のデバイス認証情報を読み取れない場合に、他の Hub まで利用できなくなる問題を修正しました。既存の認証情報は保持され、自動リセットは行われません。"
+            },
+            {
+              "id": "file-icons",
+              "text": "システムのファイルアイコンを読み込めない際に、ライブラリやチャット添付でアイコンが空白になったり拡張子が不自然に表示されたりする問題を修正しました。文書・フォルダーの代替アイコンを表示します。"
+            },
+            {
+              "id": "organization-models",
+              "text": "組織管理のモデルサービスをクライアントでは読み取り専用にしました。接続先・キー・モデル一覧は管理者が管理し、個人サービスは引き続き編集できます。過去の個人設定による上書きは組織サービスに適用されません。"
+            },
+            {
+              "id": "account-controls",
+              "text": "アカウント無効化時はログインセッションを終了し、デバイス識別情報と履歴を保持します。ユーザーのロール解除が反映されない問題と、無効なアカウント状態でタスク開始を試みる問題も修正しました。"
+            },
+            {
+              "id": "acceptance-guidance",
+              "text": "自動検収の前提条件が不足している場合、更新後も理由と対処案内を表示し、手動検収の入口を維持します。"
+            },
+            {
+              "id": "chat-layout",
+              "text": "チャット入力欄の AI に関する注意書き、実行エンジンのアイコンサイズと余白を統一し、注意書きが入力欄に詰まって表示される問題を修正しました。"
+            }
+          ]
+        }
+      ]
+    },
+    "ko-KR": {
+      "summary": "새 대화의 작업 폴더, 개인 메모리와 Kimi 사용 경험을 개선하고 대화 실행 및 계정 상태 처리를 수정했습니다.",
+      "sections": [
+        {
+          "id": "features",
+          "title": "기능 업데이트",
+          "items": [
+            {
+              "id": "new-chat-workspace",
+              "text": "새 대화는 이전 대화의 폴더를 자동으로 이어 쓰지 않고 별도의 작업 폴더를 사용합니다. 직접 선택한 프로젝트 폴더는 계속 공유할 수 있습니다."
+            },
+            {
+              "id": "personal-memory",
+              "text": "개인 메모리에서 Markdown 미리 보기와 원문 편집을 지원합니다. 자동 메모리에서 실행 엔진의 자기소개를 걸러 내고 기존 자동 자기소개 요약을 정리하며, 수동 기록은 유지합니다."
+            },
+            {
+              "id": "runtime-options",
+              "text": "Google Harness2와 Claude Code 실행 엔진의 선택 및 설치 항목을 제거했습니다. 기존 대화 기록은 계속 볼 수 있으며, 실행을 이어 가려면 지원되는 엔진을 선택해야 합니다."
+            }
+          ]
+        },
+        {
+          "id": "fixes",
+          "title": "버그 수정",
+          "items": [
+            {
+              "id": "kimi-file-read",
+              "text": "Kimi 등의 엔진이 기본적으로 파일의 처음 2,000줄만 읽어 편집 시 뒷부분을 누락할 수 있는 문제를 수정했습니다. 읽기 한도를 넘는 파일은 명확한 오류로 알립니다."
+            },
+            {
+              "id": "kimi-interaction",
+              "text": "Kimi의 실시간 답변에서 문단이 사라지는 문제, API 키가 필요 없는 로컬 모델로 시작하지 못하는 문제, 선택형 질문을 권한 요청으로 처리하는 문제를 수정했습니다. 질문은 사용자의 답변을 기다립니다."
+            },
+            {
+              "id": "execution-status",
+              "text": "프로세스 종료, 출력 잘림, 컨텍스트 복구 시 실행 상태 판단을 개선했습니다. 실제 실패 원인을 유지하고, 기록을 다시 읽거나 엔진을 바꾼 뒤 완료된 작업을 실패로 잘못 표시하지 않으며, 기존 프로세스가 종료된 후 복구합니다."
+            },
+            {
+              "id": "agent-probes",
+              "text": "에이전트 연결 테스트에서 공백 문자와 Unicode 내용을 올바르게 해석하도록 수정했습니다. 잘린 답변을 감지해 완료되지 않은 테스트를 성공으로 표시하지 않습니다."
+            },
+            {
+              "id": "secure-connections",
+              "text": "패키지에 포함된 Runner가 모델 게이트웨이에 연결하거나 관리되는 다운로드를 수행할 때 발생하는 인증서 신뢰 문제를 수정했습니다. 인증서 검증과 명시적으로 설정한 신뢰 설정은 유지합니다."
+            },
+            {
+              "id": "mac-hub-credentials",
+              "text": "macOS에서 한 Hub의 기기 인증 정보를 읽지 못하면 다른 Hub도 차단되던 문제를 수정했습니다. 기존 인증 정보는 유지하며 자동으로 초기화하지 않습니다."
+            },
+            {
+              "id": "file-icons",
+              "text": "시스템 파일 아이콘을 불러오지 못할 때 자료실이나 대화 첨부 파일에 빈 아이콘이나 잘못된 확장자 텍스트가 표시되던 문제를 수정했습니다. 문서와 폴더의 대체 아이콘을 표시합니다."
+            },
+            {
+              "id": "organization-models",
+              "text": "조직이 관리하는 모델 서비스는 클라이언트에서 읽기 전용으로 표시합니다. 주소, 키, 모델 목록은 관리자가 관리하고 개인 서비스는 계속 편집할 수 있습니다. 기존 개인 재정의 설정은 조직 서비스에 더 이상 영향을 주지 않습니다."
+            },
+            {
+              "id": "account-controls",
+              "text": "계정을 비활성화하면 로그인 세션을 종료하되 기기 식별 정보와 기록은 유지합니다. 사용자 역할 해제가 반영되지 않는 문제와 유효하지 않은 계정 상태에서 작업 시작을 시도하는 문제도 수정했습니다."
+            },
+            {
+              "id": "acceptance-guidance",
+              "text": "자동 검수에 필요한 조건이 충족되지 않으면 새로 고침 후에도 원인과 처리 안내를 유지하며, 수동 검수도 계속 사용할 수 있습니다."
+            },
+            {
+              "id": "chat-layout",
+              "text": "대화 입력 영역의 AI 안내, 실행 엔진 아이콘 크기와 간격을 통일하고 안내 문구가 입력 영역에 붙어 표시되는 문제를 수정했습니다."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "sectionId": "features",
+      "itemId": "new-chat-workspace",
+      "commits": [
+        "ce6af8bbffcc7cca2b0ad3fa61a8364cc2e64e64"
+      ]
+    },
+    {
+      "sectionId": "features",
+      "itemId": "personal-memory",
+      "commits": [
+        "ce6af8bbffcc7cca2b0ad3fa61a8364cc2e64e64"
+      ]
+    },
+    {
+      "sectionId": "features",
+      "itemId": "runtime-options",
+      "commits": [
+        "63799d1d437b49314971e04369b71ff8d2ec17c6",
+        "701bf2b8806f2787f94763bfe3525733e335e5a2"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "kimi-file-read",
+      "commits": [
+        "34d07290c8497be39f7f2ace20febc62a0e86097"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "kimi-interaction",
+      "commits": [
+        "34d07290c8497be39f7f2ace20febc62a0e86097",
+        "0996ab25e1c92ea14669a718063e945e6c72e6d6"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "execution-status",
+      "commits": [
+        "2f7156846e275f8809df80f9e331174035d645c5",
+        "eeed6eb8dce75e38d55ae42a939ff34f75bc097c",
+        "e054008a89f620e74e94479ca8ac93c50fca5ed3",
+        "ad06326ec7e8617e8af30e9942a043ff50e63af7",
+        "487364d1c384347914a7c898743b1682bb3c6a65"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "agent-probes",
+      "commits": [
+        "f75c4bf1c4ef325954e29f143a0d779294deb064",
+        "730cf62b2d6bbf3f6028fc098ee9616cfad60969"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "secure-connections",
+      "commits": [
+        "2f7156846e275f8809df80f9e331174035d645c5"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "mac-hub-credentials",
+      "commits": [
+        "77e76117b2556258cf851566b697a61426292d7f"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "file-icons",
+      "commits": [
+        "8051c5be1c9d3c91dc0a4683a2887c6a71c0d40c"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "organization-models",
+      "commits": [
+        "9de04c37a9639990d3c954b93c01fa6a865f9647"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "account-controls",
+      "commits": [
+        "e428f8308d2aafed2d3178cc5ca9073c8a47373c",
+        "b693350bc5a91bc5168672f9364db8739ec7bbb2",
+        "eeed6eb8dce75e38d55ae42a939ff34f75bc097c"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "acceptance-guidance",
+      "commits": [
+        "eeed6eb8dce75e38d55ae42a939ff34f75bc097c"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "chat-layout",
+      "commits": [
+        "6a3379914112fe1912248fa786985d48f8a9e2d0",
+        "b693350bc5a91bc5168672f9364db8739ec7bbb2"
+      ]
+    }
+  ],
+  "omitted": [
+    {
+      "commit": "a61e1a4c34f32abafede52d9c24f6ba8cd09beee",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "d4a53c374e9c27ac0069ce06e566c653484027eb",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "b88cc41206e4303d08cf13e12148395b79c7115a",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "ca84080cc82975df7b1e1586cc4336952fe5f525",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "e18b95073e324ef70710493902fa26481f7d4318",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "2f3cf33bd3640392ed6a1b6223a68515f758d6a6",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "63065c3a4dbf0385492502132d6531cc55a64c80",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "51f5d68bbcc2c91bdc93f826667771423c76c84a",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "f2c09c5a06af877787d517910bb76ca465d5f2c9",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "17082428bdcd9e4ce0ca661c7814f661b8bd0c16",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "084cde87b9c5db3cde393c70f70ca24636d0e714",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "8b811d5b37dce90715f67db280b10791c46a91ab",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "3a2d30f4048fb2a7005ce686e0565f4a51295c25",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "32a21f827b2145af47ae76fd769e6bf446767140",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "030e5e24974f1ccd4693f01d02c66849d6d24072",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "833f9d07f8a76beb170fbb647011b205f8b41d30",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "69999bac330bd7652adb489383d38c803a1950f5",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "7a1acc0e699d19e10ac31535adff73066061543e",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "54fe7a632b0df4e2a0b042489df4dc69bc1077c1",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "d3631e5070fc6762373b3e8ae48338f17b88fe6f",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "9db08a2847e6c7dbb4e9d5a841f65f4a07b75ca9",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "1874a4e26c51ed60ccf3a7e75852163a2d31a235",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "c0c5c4f248e9b683dea4afde041c1e83f349d2f2",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "4bb36d6ca490207f49290e4f26d5ca6f2f64c671",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "cc4ece459be200fbf8123f27658d4f2765335925",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "3bc79e0a5f564169b265f6cc848a8eb9cff326ca",
+      "reason": "maintenance"
+    }
+  ],
+  "schema": 1,
+  "repository": "mdiri-ai/SoduWork",
+  "channel": "stable",
+  "commits": [
+    "2f7156846e275f8809df80f9e331174035d645c5",
+    "a61e1a4c34f32abafede52d9c24f6ba8cd09beee",
+    "77e76117b2556258cf851566b697a61426292d7f",
+    "d4a53c374e9c27ac0069ce06e566c653484027eb",
+    "8051c5be1c9d3c91dc0a4683a2887c6a71c0d40c",
+    "63799d1d437b49314971e04369b71ff8d2ec17c6",
+    "701bf2b8806f2787f94763bfe3525733e335e5a2",
+    "b88cc41206e4303d08cf13e12148395b79c7115a",
+    "ca84080cc82975df7b1e1586cc4336952fe5f525",
+    "e18b95073e324ef70710493902fa26481f7d4318",
+    "e428f8308d2aafed2d3178cc5ca9073c8a47373c",
+    "2f3cf33bd3640392ed6a1b6223a68515f758d6a6",
+    "63065c3a4dbf0385492502132d6531cc55a64c80",
+    "9de04c37a9639990d3c954b93c01fa6a865f9647",
+    "51f5d68bbcc2c91bdc93f826667771423c76c84a",
+    "0996ab25e1c92ea14669a718063e945e6c72e6d6",
+    "f2c09c5a06af877787d517910bb76ca465d5f2c9",
+    "eeed6eb8dce75e38d55ae42a939ff34f75bc097c",
+    "17082428bdcd9e4ce0ca661c7814f661b8bd0c16",
+    "084cde87b9c5db3cde393c70f70ca24636d0e714",
+    "8b811d5b37dce90715f67db280b10791c46a91ab",
+    "34d07290c8497be39f7f2ace20febc62a0e86097",
+    "6a3379914112fe1912248fa786985d48f8a9e2d0",
+    "e054008a89f620e74e94479ca8ac93c50fca5ed3",
+    "ad06326ec7e8617e8af30e9942a043ff50e63af7",
+    "3a2d30f4048fb2a7005ce686e0565f4a51295c25",
+    "32a21f827b2145af47ae76fd769e6bf446767140",
+    "f75c4bf1c4ef325954e29f143a0d779294deb064",
+    "030e5e24974f1ccd4693f01d02c66849d6d24072",
+    "833f9d07f8a76beb170fbb647011b205f8b41d30",
+    "69999bac330bd7652adb489383d38c803a1950f5",
+    "7a1acc0e699d19e10ac31535adff73066061543e",
+    "487364d1c384347914a7c898743b1682bb3c6a65",
+    "730cf62b2d6bbf3f6028fc098ee9616cfad60969",
+    "54fe7a632b0df4e2a0b042489df4dc69bc1077c1",
+    "b693350bc5a91bc5168672f9364db8739ec7bbb2",
+    "d3631e5070fc6762373b3e8ae48338f17b88fe6f",
+    "ce6af8bbffcc7cca2b0ad3fa61a8364cc2e64e64",
+    "9db08a2847e6c7dbb4e9d5a841f65f4a07b75ca9",
+    "1874a4e26c51ed60ccf3a7e75852163a2d31a235",
+    "c0c5c4f248e9b683dea4afde041c1e83f349d2f2",
+    "4bb36d6ca490207f49290e4f26d5ca6f2f64c671",
+    "cc4ece459be200fbf8123f27658d4f2765335925",
+    "3bc79e0a5f564169b265f6cc848a8eb9cff326ca"
+  ]
+}

@@ -117,6 +117,8 @@ def package_native(ctx, shard, scratch, *, validation=False):
 
 
 def native(ctx, shard, folder, scratch):
+    import release_notes
+    notes_digest = release_notes.bundle(ctx, ROOT / "release-evidence" / release_notes.NAME, ROOT)
     env = package_native(ctx, shard, scratch)
     target_arch = "arm64" if shard == "macos-arm64" else "x64"
     keys = {"windows": ["windows-x64-exe"], "linux": ["linux-x64-deb", "linux-x64-rpm", "linux-x64-tar.gz"],
@@ -144,6 +146,7 @@ def native(ctx, shard, folder, scratch):
     for name in expected(ctx, shard):
         shutil.copyfile(ROOT / "client/dist" / name, folder / name)
     checks = read(receipt)
+    checks["releaseNotesSha256"] = notes_digest
     if shard == "linux":
         # Verify again after native acceptance and copying the accepted bytes.
         checks["linuxSigning"] = linux_signing.verify_packages(

@@ -91,6 +91,50 @@ When replacing old `release/X.Y.Z` branches, first preserve their published `vX.
 
 When preparing the public repository, reviewed source may be squashed into `public` without private development history, old tags or internal artifacts. The source exporter creates a ZIP from the committed tree, generates its manifest from the archived bytes, and verifies the archive before returning it. The manifest is not tracked in Git.
 
+## User-facing release notes
+
+For `client` and `all`, the `release-notes` job runs after preflight and before
+native builds. It compares the last published desktop ancestor release with the
+candidate commit, including merge commits. Reviewed `docs/releases/X.Y.Z.json`
+content takes precedence; otherwise the job calls the configured OpenAI-compatible
+model. Configure secret `RELEASE_NOTES_API_KEY` and variables
+`RELEASE_NOTES_API_URL` (full chat-completions endpoint) and `RELEASE_NOTES_MODEL`.
+The request uses system/user messages and a 32768-token output budget (including thinking), without
+`reasoning_effort`. These credentials are supplied only to the generation step.
+Source-only and Hub-only diagnostic builds do not generate desktop notes.
+
+The JSON contains Chinese, English, Japanese and Korean prose with matching
+section/item IDs and commit provenance. User-facing prose must describe actual
+changes, without links, generic placeholders or copied release infrastructure
+metadata. Model errors, timeouts and invalid generated content produce an empty
+`status: unavailable` artifact and do not block packaging. Invalid explicitly
+reviewed input still fails validation. Empty notes preserve any existing bundled
+history and published Hub notes; they never become a links list or a fabricated
+summary. The missing content can be backfilled after editorial review.
+
+Every native build downloads the same immutable artifact ID, embeds the localized
+content, and records its digest in its acceptance receipt. Candidate verification
+requires matching digests and includes `release-notes.json` in the hashed release
+inventory. The draft body uses its English prose. Job retries reuse the original
+artifact, including an empty one; changing content requires a new candidate run
+or a separate presentation-only backfill. Publishing never regenerates notes.
+
+When deploying accepted installers to a Hub, consume `release-notes.json`, not
+GitHub's entire Release body. With a deployment-side admin token in environment
+variable `RELEASE_NOTES_HUB_TOKEN`, publish after enabling a matching installer:
+
+```sh
+python tools/github/publish_release_notes.py --file release-notes.json --hub https://hub.example.com
+```
+
+This updates only the version's localized presentation metadata with revision
+checking, then verifies the signed installer catalog is unchanged. An unavailable
+artifact is skipped. Do not copy Candidate markers, download links or checksums
+into signed `notes` as a fallback; use empty signed prose when no validated
+content exists. Keep Hub credentials outside GitHub build jobs. Existing versions
+can be backfilled from their reviewed JSON without rebuilding or resigning assets.
+The Hub records the first publication time of the localized metadata.
+
 ## Binary publication gates
 
 Review and commit genuine resolution evidence for `third-party/public-release.json`: original licenses, corresponding source archives and actual artifact inventories. Then update the distribution scope in `PUBLIC-SOURCE.json`. Do not simply clear pending items to make CI pass.

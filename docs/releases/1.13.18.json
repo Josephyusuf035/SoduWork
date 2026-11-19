@@ -1,0 +1,1257 @@
+{
+  "version": "1.13.18",
+  "previousTag": "v1.13.17",
+  "sourceCommit": "80b49f72858530fb3c2fb30a106c023300f84a41",
+  "previousCommit": "3bc79e0a5f564169b265f6cc848a8eb9cff326ca",
+  "locales": {
+    "zh-CN": {
+      "summary": "本次更新改进目录级模型选择、对话式自动化和插件制作，并集中修复会话恢复、执行排队与需求成果交付的问题。",
+      "sections": [
+        {
+          "id": "features",
+          "title": "功能更新",
+          "items": [
+            {
+              "id": "directory-preferences",
+              "text": "按工作目录记住成功使用的底座和模型；在同一目录新建对话时恢复可用组合，并保留登录刷新和云端切换时的选择。"
+            },
+            {
+              "id": "automation-drafts",
+              "text": "自动化草稿支持“五分钟后”等相对时间，并可继续对话修改、确认或取消；时间不明确时保持草稿。模板支持生效日期，保存时检查过期修改，避免覆盖较新的配置。"
+            },
+            {
+              "id": "skill-discovery",
+              "text": "技能页面新增“如何获得技能？”入口，可浏览推荐的公开技能来源，再通过“添加技能”导入。"
+            }
+          ]
+        },
+        {
+          "id": "fixes",
+          "title": "问题修复",
+          "items": [
+            {
+              "id": "sign-in-recovery",
+              "text": "修复登录恢复时短暂出现登录表单、账号信息或界面语言闪动的问题；按 Hub 记住账号，重新打开工作区时保留已登录状态和已有显示偏好。"
+            },
+            {
+              "id": "workspace-history",
+              "text": "修复云端对话在侧栏重复显示、删除后缓存残留和重复启动无法唤回工作区的问题；改善空项目拖放与长对话列表折叠，并修复宠物拖动无法正常结束的问题。"
+            },
+            {
+              "id": "runtime-goals",
+              "text": "普通对话不再因消息措辞自动进入目标循环；保留底座历史、目标暂停与恢复状态。改善 DeepSeek 子任务等待、工具结果保留和 Codex 重连提示，避免将未完成工作误判为结束。"
+            },
+            {
+              "id": "runner-queue",
+              "text": "执行状态区分排队、启动和运行，显示队列位置及等待时间；修复并发会话的取消与状态串扰，以及部分执行事件和模型连接回收异常。"
+            },
+            {
+              "id": "plugin-authoring",
+              "text": "插件开发助手明确按可复用插件制作需求处理消息；生成包通过检查后才提供安装入口。修复草稿检查失败后一直显示运行中、修复失败原因丢失及图标上传反馈不清的问题。"
+            },
+            {
+              "id": "requirement-delivery",
+              "text": "修复需求完成后未正确提交验收、交付附件遗漏和中间稿混入最终成果的问题；明确区分待同步、手动提交与交付阻塞，保留旧任务正文，并减少需求卡片上的重复操作。"
+            },
+            {
+              "id": "files-preview",
+              "text": "修复资料库空文件无法打开和视频预览部分范围请求异常的问题；Markdown 中的单个波浪号按原文显示，数字区间不再被误当作删除线。"
+            },
+            {
+              "id": "model-settings",
+              "text": "新增对话模型保存后，符合条件的 OpenAI 兼容服务会自动检测能力；完善检测结果与图片路由，区分模型保存和服务保存，并改善输出 Token 超限提示及多语言模型页面布局。"
+            },
+            {
+              "id": "access-controls",
+              "text": "新对话默认使用标准访问权限；从只读切回可写权限后恢复已配置的工具。加强仓库工作目录校验，阻止越出允许目录的相对路径。"
+            },
+            {
+              "id": "application-tabs",
+              "text": "应用内打开的新页面改为标签页，并修复恢复页面时的地址解析异常；应用交付提示会说明已完成的检查和仍需人工确认的部分。"
+            },
+            {
+              "id": "localized-interface",
+              "text": "完善需求起草、派发、离线登录和韩语智能体页面的翻译；切换语言时保留派发名称，修复底座图标溢出和弹窗遮挡窗口标题栏的问题。"
+            },
+            {
+              "id": "admin-diagnostics",
+              "text": "完善企业微信未配对消息和模型拒绝请求的诊断；管理后台切换账号后不再显示旧请求结果，并修复用户表单自动填充、历史领域排序及 MCP 冲突刷新失败提示。"
+            },
+            {
+              "id": "installation",
+              "text": "Linux 安装包增加签名及配套验签文件，RPM 支持包内签名；Windows 卸载时若缺少清理数据的权限，会明确提示以管理员身份重试。"
+            },
+            {
+              "id": "source-startup",
+              "text": "源码启动时，将默认依赖缓存和临时文件放入指定数据目录；修复无效环境路径造成的启动失败，并明确区分磁盘空间不足、运行环境检查失败等原因。"
+            },
+            {
+              "id": "system-certificate-trust",
+              "text": "Runner 的模型和控制连接改用操作系统证书信任，修复部分环境下证书链校验失败的问题，并继续遵守显式配置的证书规则。"
+            }
+          ]
+        }
+      ]
+    },
+    "en-US": {
+      "summary": "This update improves per-directory model choices, conversational automation and plugin authoring, with fixes for conversation recovery, execution queues and requirement delivery.",
+      "sections": [
+        {
+          "id": "features",
+          "title": "Feature updates",
+          "items": [
+            {
+              "id": "directory-preferences",
+              "text": "Remember the runtime and model successfully used in each working directory, restore available pairs for new conversations there, and retain selections through authentication refreshes and cloud switching."
+            },
+            {
+              "id": "automation-drafts",
+              "text": "Automation drafts support relative times such as “in five minutes” and conversational edits, confirmation or cancellation. Ambiguous times stay as drafts. Templates support effective dates and detect stale edits before overwriting newer settings."
+            },
+            {
+              "id": "skill-discovery",
+              "text": "The skills page now includes a discovery entry for recommended public skill sources, with guidance to import them through Add Skill."
+            }
+          ]
+        },
+        {
+          "id": "fixes",
+          "title": "Bug fixes",
+          "items": [
+            {
+              "id": "sign-in-recovery",
+              "text": "Fix brief sign-in forms and account or language flicker during session recovery. Remember accounts per Hub and preserve authenticated workspace recovery and saved display preferences."
+            },
+            {
+              "id": "workspace-history",
+              "text": "Fix duplicate cloud conversations, leftover caches after deletion, and repeated launches failing to restore the workspace. Improve drops onto empty projects and long-list collapsing, and stop pet dragging when mouse release is lost."
+            },
+            {
+              "id": "runtime-goals",
+              "text": "Ordinary conversations no longer enter goal loops based on message wording. Preserve runtime history and goal pause/resume state. Improve DeepSeek child-task waiting, retained tool results and Codex reconnect notices so unfinished work is not mistaken for completion."
+            },
+            {
+              "id": "runner-queue",
+              "text": "Execution status now distinguishes queued, starting and running work, with queue position and wait time. Fix cancellation and status interference between concurrent sessions, along with certain execution-event and model-connection cleanup failures."
+            },
+            {
+              "id": "plugin-authoring",
+              "text": "The plugin development assistant treats requests as reusable plugin authoring and offers installation only after package checks pass. Fix stuck running states after draft checks fail, lost repair-error details and unclear icon-upload feedback."
+            },
+            {
+              "id": "requirement-delivery",
+              "text": "Fix requirements failing to reach review after completion, missing delivery attachments and intermediate drafts entering final deliverables. Distinguish pending sync, manual submission and blocked delivery, preserve legacy task text, and reduce duplicate requirement-card actions."
+            },
+            {
+              "id": "files-preview",
+              "text": "Fix opening empty library files and some video-preview range requests. Preserve single tildes in Markdown so numeric ranges are not incorrectly rendered as strikethrough."
+            },
+            {
+              "id": "model-settings",
+              "text": "Eligible OpenAI-compatible services automatically check capabilities after new chat models are saved. Improve capability results and image routing, separate model saves from service saves, and clarify output-token errors and multilingual model-page layout."
+            },
+            {
+              "id": "access-controls",
+              "text": "New conversations default to standard access. Restore configured tools when leaving read-only access, and validate repository-relative paths to prevent work outside allowed directories."
+            },
+            {
+              "id": "application-tabs",
+              "text": "Open new application pages as tabs and handle invalid origins during page restoration. Application delivery notices now distinguish completed checks from items still requiring manual confirmation."
+            },
+            {
+              "id": "localized-interface",
+              "text": "Improve translations for requirement drafts, assignments, offline sign-in and Korean agent pages. Preserve assignment names across language changes, and fix oversized runtime icons and dialogs overlapping the title bar."
+            },
+            {
+              "id": "admin-diagnostics",
+              "text": "Improve diagnostics for unpaired WeCom messages and model refusals. Prevent stale admin responses after account changes, and fix user-form autofill, legacy domain ordering and MCP conflict-refresh error feedback."
+            },
+            {
+              "id": "installation",
+              "text": "Linux installers now include signatures and verification files, with embedded RPM signatures. Windows uninstall explains when administrator privileges are needed to retry data cleanup."
+            },
+            {
+              "id": "source-startup",
+              "text": "For source launches, place default dependency caches and temporary files under the selected data directory. Fix startup failures caused by invalid environment paths and distinguish disk-space failures from runtime-check problems."
+            },
+            {
+              "id": "system-certificate-trust",
+              "text": "Runner model and control connections use operating-system certificate trust to fix certificate-chain failures in affected environments while respecting explicit certificate settings."
+            }
+          ]
+        }
+      ]
+    },
+    "ja-JP": {
+      "summary": "ディレクトリごとのモデル選択、会話による自動化、プラグイン制作を改善し、会話の復元、実行キュー、要求の成果物提出に関する問題を修正しました。",
+      "sections": [
+        {
+          "id": "features",
+          "title": "機能更新",
+          "items": [
+            {
+              "id": "directory-preferences",
+              "text": "作業ディレクトリごとに正常に使用した実行環境とモデルを記憶し、同じ場所の新しい会話で利用可能な組み合わせを復元します。認証更新やクラウド切り替え時も選択を保持します。"
+            },
+            {
+              "id": "automation-drafts",
+              "text": "自動化の下書きで「5分後」などの相対時刻を指定し、会話で変更・確認・キャンセルできます。曖昧な時刻は下書きのまま保持します。テンプレートには有効期間を設定でき、古い編集で新しい設定を上書きしないよう確認します。"
+            },
+            {
+              "id": "skill-discovery",
+              "text": "スキル画面にスキルの入手先を案内する入口を追加しました。公開スキルの推奨サイトを確認し、「スキルを追加」から取り込めます。"
+            }
+          ]
+        },
+        {
+          "id": "fixes",
+          "title": "不具合修正",
+          "items": [
+            {
+              "id": "sign-in-recovery",
+              "text": "セッション復元時にログイン画面が一瞬表示されたり、アカウント情報や言語がちらつく問題を修正しました。Hubごとにアカウントを記憶し、ログイン済みの作業画面と保存した表示設定を復元します。"
+            },
+            {
+              "id": "workspace-history",
+              "text": "クラウド会話の重複表示、削除後のキャッシュ残留、再起動操作で作業画面が戻らない問題を修正しました。空のプロジェクトへのドロップと長い会話一覧の折りたたみを改善し、ペットのドラッグが終了しない問題も修正しました。"
+            },
+            {
+              "id": "runtime-goals",
+              "text": "通常の会話がメッセージの言い回しだけで目標ループに移行しなくなりました。実行環境の履歴と目標の一時停止・再開状態を保持します。DeepSeekの子タスク待機、ツール結果の保持、Codexの再接続通知を改善し、未完了の作業を終了と誤認しにくくしました。"
+            },
+            {
+              "id": "runner-queue",
+              "text": "実行状態を待機中・起動中・実行中に分け、キューの位置と待ち時間を表示します。同時実行する会話間でキャンセルや状態が干渉する問題と、一部の実行イベントやモデル接続の後処理の不具合を修正しました。"
+            },
+            {
+              "id": "plugin-authoring",
+              "text": "プラグイン開発アシスタントは、依頼を再利用可能なプラグインの制作として扱い、生成パッケージの検査に合格してからインストールを案内します。下書き検査の失敗後も実行中になる問題、修復エラー詳細の消失、アイコンアップロード時の不明瞭な案内を修正しました。"
+            },
+            {
+              "id": "requirement-delivery",
+              "text": "完了した要求が正しく検収に進まない問題、納品添付ファイルの欠落、中間稿が最終成果物に混入する問題を修正しました。同期待ち・手動提出・納品の阻害を区別し、既存タスクの本文を保持して要求カードの重複操作を減らしました。"
+            },
+            {
+              "id": "files-preview",
+              "text": "資料ライブラリの空ファイルを開けない問題と、動画プレビューの一部の範囲リクエストの不具合を修正しました。Markdownの単一チルダをそのまま表示し、数値範囲を取り消し線と誤認しないようにしました。"
+            },
+            {
+              "id": "model-settings",
+              "text": "新しい会話モデルの保存後、条件を満たすOpenAI互換サービスで能力を自動検査します。検査結果と画像の振り分けを改善し、モデル保存とサービス保存を分離しました。出力トークン上限のエラー表示と多言語でのモデル画面レイアウトも改善しました。"
+            },
+            {
+              "id": "access-controls",
+              "text": "新しい会話は標準のアクセス権限で開始します。読み取り専用から変更可能な権限に戻した際に設定済みツールを復元し、許可されたディレクトリ外へ抜けるリポジトリ相対パスを検証します。"
+            },
+            {
+              "id": "application-tabs",
+              "text": "アプリ内で開く新しいページをタブとして表示し、ページ復元時のアドレス解析エラーを修正しました。アプリの納品通知では、完了した検査と手動確認が必要な項目を区別します。"
+            },
+            {
+              "id": "localized-interface",
+              "text": "要求の下書き、割り当て、オフラインログイン、韓国語のエージェント画面の翻訳を改善しました。言語切り替え時に割り当て名を保持し、実行環境アイコンのはみ出しとダイアログがタイトルバーに重なる問題を修正しました。"
+            },
+            {
+              "id": "admin-diagnostics",
+              "text": "未連携のWeComメッセージとモデルによる拒否の診断を改善しました。管理画面でアカウント変更後に古い応答を表示しないようにし、ユーザーフォームの自動入力、既存領域の並び順、MCP競合の再取得失敗時の案内を修正しました。"
+            },
+            {
+              "id": "installation",
+              "text": "Linuxインストーラーに署名と検証用ファイルを追加し、RPMにはパッケージ内署名を付けました。Windowsのアンインストールでデータ削除権限が不足した場合は、管理者権限で再試行する案内を表示します。"
+            },
+            {
+              "id": "source-startup",
+              "text": "ソースからの起動時、既定の依存キャッシュと一時ファイルを指定したデータディレクトリ内に保存します。無効な環境パスによる起動失敗を修正し、ディスク容量不足と実行環境の検査失敗などを区別して案内します。"
+            },
+            {
+              "id": "system-certificate-trust",
+              "text": "Runnerのモデル接続と制御接続でOSの証明書信頼を使用し、一部環境での証明書チェーン検証失敗を修正しました。明示的な証明書設定も引き続き適用します。"
+            }
+          ]
+        }
+      ]
+    },
+    "ko-KR": {
+      "summary": "디렉터리별 모델 선택, 대화형 자동화와 플러그인 제작을 개선하고 대화 복원, 실행 대기열 및 요구사항 결과물 제출 문제를 수정했습니다.",
+      "sections": [
+        {
+          "id": "features",
+          "title": "기능 업데이트",
+          "items": [
+            {
+              "id": "directory-preferences",
+              "text": "작업 디렉터리별로 성공적으로 사용한 실행 환경과 모델을 기억하고 새 대화에서 사용 가능한 조합을 복원합니다. 인증 갱신과 클라우드 전환 시에도 선택을 유지합니다."
+            },
+            {
+              "id": "automation-drafts",
+              "text": "자동화 초안에서 “5분 후” 같은 상대 시간을 지정하고 대화로 수정, 확인 또는 취소할 수 있습니다. 시간이 모호하면 초안으로 유지합니다. 템플릿의 유효 기간을 설정하고 오래된 수정이 최신 설정을 덮어쓰지 않도록 확인합니다."
+            },
+            {
+              "id": "skill-discovery",
+              "text": "스킬 페이지에 추천 공개 스킬 출처를 안내하는 항목을 추가했습니다. 원하는 스킬을 찾은 뒤 스킬 추가 기능으로 가져올 수 있습니다."
+            }
+          ]
+        },
+        {
+          "id": "fixes",
+          "title": "버그 수정",
+          "items": [
+            {
+              "id": "sign-in-recovery",
+              "text": "세션 복원 중 로그인 화면이 잠시 나타나거나 계정 정보와 언어가 깜박이는 문제를 수정했습니다. Hub별 계정을 기억하고 로그인 상태와 저장된 표시 설정을 복원합니다."
+            },
+            {
+              "id": "workspace-history",
+              "text": "클라우드 대화 중복 표시, 삭제 후 캐시 잔류, 재실행 시 작업 공간이 복원되지 않는 문제를 수정했습니다. 빈 프로젝트로 끌어놓기와 긴 대화 목록 접기를 개선하고 펫 끌기가 끝나지 않는 문제도 수정했습니다."
+            },
+            {
+              "id": "runtime-goals",
+              "text": "일반 대화가 메시지 표현만으로 목표 반복 실행에 들어가지 않도록 수정했습니다. 실행 환경 이력과 목표의 일시 중지·재개 상태를 유지합니다. DeepSeek 하위 작업 대기, 도구 결과 보존, Codex 재연결 알림을 개선해 미완료 작업이 종료로 처리되지 않도록 했습니다."
+            },
+            {
+              "id": "runner-queue",
+              "text": "실행 상태를 대기, 시작, 실행 단계로 구분하고 대기열 위치와 대기 시간을 표시합니다. 동시 대화 간 취소 및 상태 간섭과 일부 실행 이벤트·모델 연결 정리 오류를 수정했습니다."
+            },
+            {
+              "id": "plugin-authoring",
+              "text": "플러그인 개발 도우미가 요청을 재사용 가능한 플러그인 제작으로 처리하고 패키지 검사 통과 후 설치를 안내합니다. 초안 검사 실패 후 실행 중 상태가 지속되거나 복구 오류 내용이 사라지는 문제와 불명확한 아이콘 업로드 안내를 수정했습니다."
+            },
+            {
+              "id": "requirement-delivery",
+              "text": "완료된 요구사항이 검토로 넘어가지 않거나 납품 첨부파일이 누락되고 중간 초안이 최종 결과물에 섞이는 문제를 수정했습니다. 동기화 대기, 수동 제출, 납품 차단 상태를 구분하고 기존 작업 본문을 보존하며 카드의 중복 작업을 줄였습니다."
+            },
+            {
+              "id": "files-preview",
+              "text": "자료 라이브러리의 빈 파일이 열리지 않는 문제와 동영상 미리보기의 일부 범위 요청 오류를 수정했습니다. Markdown의 단일 물결표를 그대로 표시해 숫자 범위가 취소선으로 처리되지 않도록 했습니다."
+            },
+            {
+              "id": "model-settings",
+              "text": "새 대화 모델 저장 후 조건을 충족하는 OpenAI 호환 서비스의 기능을 자동 검사합니다. 검사 결과와 이미지 라우팅을 개선하고 모델 저장과 서비스 저장을 구분했습니다. 출력 토큰 한도 오류 안내와 다국어 모델 페이지 배치도 개선했습니다."
+            },
+            {
+              "id": "access-controls",
+              "text": "새 대화는 표준 접근 권한으로 시작합니다. 읽기 전용에서 쓰기 가능한 권한으로 전환하면 설정된 도구를 복원하고, 허용된 디렉터리 밖으로 벗어나는 저장소 상대 경로를 검사합니다."
+            },
+            {
+              "id": "application-tabs",
+              "text": "앱 안에서 여는 새 페이지를 탭으로 표시하고 페이지 복원 시 주소 분석 오류를 수정했습니다. 앱 납품 안내에서 완료된 검사와 수동 확인이 필요한 항목을 구분합니다."
+            },
+            {
+              "id": "localized-interface",
+              "text": "요구사항 초안, 배정, 오프라인 로그인 및 한국어 에이전트 페이지 번역을 개선했습니다. 언어 변경 시 배정 이름을 유지하고 실행 환경 아이콘 넘침과 대화상자가 제목 표시줄을 가리는 문제를 수정했습니다."
+            },
+            {
+              "id": "admin-diagnostics",
+              "text": "연결되지 않은 WeCom 메시지와 모델 요청 거부에 대한 진단을 개선했습니다. 관리자 계정 변경 후 이전 응답이 표시되지 않도록 하고 사용자 양식 자동 채움, 기존 영역 정렬 및 MCP 충돌 새로 고침 실패 안내를 수정했습니다."
+            },
+            {
+              "id": "installation",
+              "text": "Linux 설치 패키지에 서명과 검증 파일을 추가하고 RPM 내부 서명을 지원합니다. Windows 제거 과정에서 데이터 정리 권한이 부족하면 관리자 권한으로 다시 시도하도록 안내합니다."
+            },
+            {
+              "id": "source-startup",
+              "text": "소스 실행 시 기본 의존성 캐시와 임시 파일을 지정한 데이터 디렉터리에 저장합니다. 잘못된 환경 경로로 인한 시작 실패를 수정하고 디스크 공간 부족과 실행 환경 검사 오류 등을 구분해 안내합니다."
+            },
+            {
+              "id": "system-certificate-trust",
+              "text": "Runner의 모델 및 제어 연결에 운영체제 인증서 신뢰를 적용해 일부 환경의 인증서 체인 검증 실패를 수정했습니다. 명시적으로 설정한 인증서 규칙도 계속 적용합니다."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "sectionId": "features",
+      "itemId": "directory-preferences",
+      "commits": [
+        "05f996b7cfd8755f4fa3b7146a6a39cfdf81fd45",
+        "56aed7b5fffaafa419019118706c72f6cbe44278",
+        "d5ffdb7407e0e471423fecc9949aa5c460d33995"
+      ]
+    },
+    {
+      "sectionId": "features",
+      "itemId": "automation-drafts",
+      "commits": [
+        "64b2cbed2f16e0ebf612a1b139eca1559c86437e",
+        "e50c647f4a153b10b4bdeddc89fbfd42b1bd99e1",
+        "f7c782064c3793ff614efab5725105673edac93e",
+        "9b13e2d9049612caf7f2550ceff8fe8d25ab742b"
+      ]
+    },
+    {
+      "sectionId": "features",
+      "itemId": "skill-discovery",
+      "commits": [
+        "a6aa6ff971be4a59d056027058e6a358e6c86d13"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "sign-in-recovery",
+      "commits": [
+        "10bd5ffb40eff3cdb2cdfc2684a210107db935c0",
+        "2ae69b7a381bfa000233804ed35a8d0611343e0d",
+        "2e5db00e73d8458d60bdc0bfe5f933db9c2e4b59"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "workspace-history",
+      "commits": [
+        "882a6016c88e06ac5168abafa827a21715d7f69b",
+        "b7bfed6ffb2800023f025dac30647662548ed272",
+        "1dee1131c499f3c59ea5dd69b8bb2e2e0dac849b",
+        "fafca0d136840c1fef1b16832a0735441afd1198",
+        "b935cccfddc9dd095f97b0dcef259d8e38568974"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "runtime-goals",
+      "commits": [
+        "a1bdec87d41214b934f59cf24374023495a5f53f",
+        "20976c14acaa9f8bd5cc06e8a3b46bd7a5e7c8be",
+        "13347195e2ffd7b5750afd676d58eabcbba9b3e0",
+        "0801506e9ab38cdda7396914dc058a127f8c390e",
+        "1991b92b7bd31eef72dd0d71fd2474ab4bfbbea5",
+        "e0dcbff30dd3a417b858e579f9dc05cf44abdb71",
+        "e64927ddabb123e2e3fffcfc3b9dbbdcf1797530",
+        "23d617e36d14011459aea096ffac67585a238542",
+        "749d62b7aac0acce7453dfccc9705b56b1072013"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "runner-queue",
+      "commits": [
+        "05b54356eb09efe2e0a33f16cced84da27843511",
+        "79f7560a3aa687dc7e688f34726d5c18effc8fcf",
+        "88c76824825ce3cfedbc661002a14a4844576656",
+        "56d61e8fd55bb54ff16771a498de9f8e4b841da3"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "plugin-authoring",
+      "commits": [
+        "bac7da07626efc9a9339de0b8914a5d60eb469b9",
+        "115a5aac08d207e051cee220d5c2e191a187cb2d",
+        "d047a2128482857c26c44c979efade9289cc3d59",
+        "d3a5dc416a7b39fb18b2ee781f4f5f13a12b0e2a",
+        "eb8a01a28d1a82dfab100b0168f8fef7e8daa7e9",
+        "e44164c2d9508e996cfc97653df043f978d7dc38",
+        "de129ef4d7e5936eb3dd418fbf5c6a4f46f7582d",
+        "243877a86202fad2470950ca0515d3c735ccce87",
+        "99be17d37314f14dc474cbd8dceb11b126cc72c8"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "requirement-delivery",
+      "commits": [
+        "672dc9f4af1b8e0209c5bdc89b1d060b6a8d4169",
+        "7f75e3a1d15b2e91ea5e1267de8f561994b0d9f8",
+        "138464d3829eb4a1f06a430bcff7002a92f50369",
+        "ac73639fd9e646c88528586889b646041c493dac",
+        "6ef9e98e68a32126b86b8eb38c84d541d6d0ca11",
+        "4e7b2feb96398e36e2e4170936a4d655824333f7",
+        "ff55c40e4292a6d985a7a7b154d7f820b0d51676"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "files-preview",
+      "commits": [
+        "dcfc2d11b6bc3937d00403a93c35fd5f9eaa74f9",
+        "9799e9f788c154452032d71a98a3d9bb45234c4c",
+        "91593a87eded9c46185a143a74b4b2ff7cfec6de"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "model-settings",
+      "commits": [
+        "1c822f5a386ec73167cd116c8d5272de44c4e3d0",
+        "7d15641a47076bd171f5531c1ee346a749909e4f",
+        "1f174c4e9df1f6232a9d7edb2f3cd18fedc87786",
+        "7cc1103920b8484990fb3b6c4ef513ad1e605af0"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "access-controls",
+      "commits": [
+        "6691fa5b4ece4d21bc868e57e0d43b409582d927",
+        "f6ec7a55a572258a5d7297f8aeb4cad7f494c863",
+        "0176a32aff3e68bc9a1cdb8b5670d5cd53ea6e14"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "application-tabs",
+      "commits": [
+        "a4d19040ca3b7462b489869d683f898d6fcf4221",
+        "1d0e3e0bf07d2103dcf86e8e315613d3c8473fbb",
+        "ef36576982dcc12922b3a7ace97558c062000e51",
+        "e9f1610ea954b55f79f9c0317092f98038e0df93"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "localized-interface",
+      "commits": [
+        "4415ad5bae49443b48819a12428137cade7c0495",
+        "d65168ff679a7c33817febd4b626a13b4f09d4ab",
+        "f4b558c34e52596bad7a19b56b5a3e187dd316fa",
+        "840cc097b7b3b889e454cbe2320c365fca0e30c0",
+        "8ceb8154b57b2c8f5c4247398f1b44481ff5ba84",
+        "11e509a739b50239193d1ebc7679740d4a609f99",
+        "ab67199ed6553d4b794e1146565e9029cadc3ebf"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "admin-diagnostics",
+      "commits": [
+        "6f294e070f95fa53b6c356eaab01db92f1d3449a",
+        "ce60392f886d39592ea3941caa3564f062b6222d",
+        "dbae843bf9395f8758468db32a4ecc410bb4b8c5",
+        "8fb80800915f35e8876800feaee9224f1d403af7",
+        "a1d600afc4c260d557795710c50e50127dcc5323"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "installation",
+      "commits": [
+        "30b0a372c6be005a711204a4ec48da7307a4ba09",
+        "744f67d948c5fad6ab8e44c204d7da02fe93febf",
+        "8394dc1823e5f5ea6a09a2e0c6add1de88353d4c"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "source-startup",
+      "commits": [
+        "ba35a53cde8467ca859525d687013882acc98bca",
+        "8b53f2983d18d0cc2a97ed0689ab0bbadee78d32",
+        "12051917ddc4983c77a1103da87afd96429e1b90",
+        "66ddf6abe0be5892b8a1d229faaddef783f99be0",
+        "797e31141fb01179face35d69878789eb57bd0a1",
+        "c762fdd8d415803f216037b484a579d0450fb7ce",
+        "a610d94ac5f38d3c0059f1edbad29359caf5922a",
+        "475d907c0a2802755fcae78dcc7864ba8f972afe"
+      ]
+    },
+    {
+      "sectionId": "fixes",
+      "itemId": "system-certificate-trust",
+      "commits": [
+        "3807cd75106733e1ebd3c1ddda7439ed8fb460bc"
+      ]
+    }
+  ],
+  "omitted": [
+    {
+      "commit": "b4a6193e5e3f5ac9fd6f89a9ee490efee347cb62",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "184638edc418424777b016fe6870dd4701bcce65",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "596f7541d653a622989dc2bd0ac62b4e5a03eee5",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "7020ebd590a09125a02a200bb38f21b1170f3811",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "cbf4607ba9bd2d2d7473e22c2aec277492afdedf",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "339cb15885984f3505f8f5e48459ebc6c918443b",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "9d295b2cb2a00a557b103f9ec4e2ab294204d2d0",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "b2af2678a5f81f223169e7122a156f138d68d711",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "1b8dd1b1b7d20ec48d0fb2d521edaa684f569918",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "0a7bdc9af4975555243bb40dc1bc6d40dbd69830",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "3c39b7fa9b485b52486604173687a924278e116b",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "ca7ee9091c1553a6ac7708ab0b171f25f843f0b8",
+      "reason": "reverted"
+    },
+    {
+      "commit": "173ef7f57d16b0e7e0ff648cf62a1ab480d00c3b",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "9dec9f44c263bb3300f83cba6464562f34075a8f",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "36f30e599056244113865d59b238633f7f14bffc",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "249413b868656ccfa76fdbccd0c65f93d5980801",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "95aefaaba0cf2293e75729a56cfc2194efd5ade2",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "423e2567a13f238fe91502acba5669832080483f",
+      "reason": "reverted"
+    },
+    {
+      "commit": "1af0d3dad75fc67f60fa24e6d6b61993b6d85f0a",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "8cdc03f4ce6febed7f5a2bbdfcc64bd1844a79e7",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "af364aa01c4e71e6f5dcd43a4901862704efabd0",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "f416d5e1a4fffc2861b5742c23da7e5a09cdc77b",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "3742e0e5ec6ba11f19daced7c49a5f00a5a47f54",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "4d1cf1266c9ae3c6c06ef53b96d8edbf38ebf4cc",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "c623ac8a1f32a10493e924fafe9363313dc5b608",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "d761b00585a89be0baaab40907aec647aa51f93f",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "77079a2ecf28f0801e4eea558eec21656627246a",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "c3487b971bd5c00836aaeea1ea90b76f81f55d1b",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "f1317d628acfc9712517a2204f7de8d114ce95d5",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "dbdf82f6a986445b47ea7a66fd9d878dfcaab85c",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "ee7771a8faaaac354366fa422ef406b8e6747eb7",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "ae54db9a5f86b065986342d7358c0124646b2392",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "1830ffd34cd8fdae708782670348b10b37e97234",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "b32ab091eac48085784ab27622591d85adfd4937",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "2216a66d22ae8c1a2202cca9b9954c3221b4cdba",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "fad84057c7190cea030f062337275b02f5686878",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "1759aba904ee812b317cb6951afc6249b49995f9",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "a835716b3feb7efdb2a4259f1f259e46220d344d",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "a232b0228fc55bb12f41a6e297ce3d31764b936b",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "394f465dcf42167489f52e020d2283936da55270",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "07d402f89b0c73e38129adb024f65e930189104d",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "42c33da70b8d257210a33884fad5b2825ca75ff5",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "565de3cd029a8ee1b9d3079b07d3a2517354e379",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "cf08c30c876a786e03205bcc4aa4a100106f3414",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "faa2bfaf8f961405a9ad8ccff14180cbfcb2e601",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "93e0bfd219f34df2310a2a3336c97e97374f0b11",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "6488f0bec4a0cdb5eda989c7f453b978b50e9de3",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "f5d0448a27860e66ad287714688d590f05612745",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "c1dc9aa59feb33e0f929e82d05680f23f1c655d9",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "9edf94567118e9d3887e268802bed2be51df555c",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "c2d41311d3b912657e0a1335d1c304511a788751",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "52264c08267f113da2b61f77a0c5da23dcc117de",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "3e7550190c798ccb2b3f4cbb95ad493cae047987",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "8458cc4b92c06319c8a261ef0c705f1267e5bd9b",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "04457b5bd846f916550ad3056bee858e4b0036d1",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "249c2115899c2aae047dd3e1d39ff9d50f5a5784",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "5770333d33d83ebc5ce0a918b5932bd7ec2ef3bc",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "79ccd857481eec12c986f4031bc85d3fffcfafdd",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "15f36192753eaaa4e6163c7558c38c4c6164ae00",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "9005c12cac2eaa8a3b16e1f15b79c48e7aefffa8",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "bd7376e8cf6c7a93134108991186239acf49a9f7",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "6554242b438fa52135e617811d5344dab7c6c400",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "5f82e502262deef61605fccea313dc5fbfac73a2",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "906f5c76b3837190f58797e1bad2ead8aab5fefa",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "f6498a1bf3d283fdd6fe469363f84318916a7331",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "aeafa5ac62c5c2524600fd5844403f8d07a8f74d",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "50c2afdb655ad1da11c75e1d44b0c96b12cf418d",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "ea126974c1957c94777db7a9ceb6527664447f7e",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "7ff3b345fd2d3d09ebce4e62aa02f8c590f1dad8",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "87e832a06df84c912cdd19c3eea7a2dbbf28635c",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "f9f40a5887ec2e2bd6c8623e7f525bb4d107b84e",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "9818c578c5b434c418e36ece24e80b476db0b823",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "1c2248f9222a364e82b3e5a95791c2f709b703cc",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "d3e3a882024d30b1344ced8fc526b35f166cea7d",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "b6bb8c4db121a7310d6e240ef72bd00079e7f471",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "d8dd74281ca3a807154e2ed55515323ded799d6c",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "d8e120292ac93a43906a7584bbd14814728d11cd",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "26f9440be10164bc8be543a2ada44558368eacd0",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "1af07ff73f640eefe5b14840a7f478242b431363",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "9fb2d2e7e48c834002b716feb511e10cc41732e0",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "65cc47a557a557a3023dc67c8ad0f60802b20d15",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "a6e835fee2b95724a919c4576e9eccda1b81c908",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "2561cd1f6fad515a939467029971e768156a3772",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "76af276f6ccad7c7abbbe71ca6671b1f2dd5d89d",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "1be22877a7ea927b59b028b164353b84cc7b9590",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "9ba99e1a84d8b2faf67997bbbd9fde580d6b05f1",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "0789f16864d4f118024307a1eed2babb5938b9f7",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "ea05d814df00057fe27209cefce0cc9fd4d5cd64",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "2407f4bb3de11c3f99b7c4df373614b4a643795c",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "5cafed11df8628c7c2e02c15530fb57bd60a64a3",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "893bae0597993283dd1c51c7971fab0d25930f2e",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "21b0a2d4def3e607c5f96fdfe8f2ae838887e856",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "935eda35cc13c54c6f44af795e9c04f0a701e8b9",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "b0711a348decefec339ed7554136eb36b7b56d4e",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "244b8fe55eaf47111e568d566311e543ae4d60fa",
+      "reason": "maintenance"
+    },
+    {
+      "commit": "1a36734a96c4c83ec34ee431cc24440b5866dbf9",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "d0b4e679e0bef3e7bc93859f4b7a3a1fdfe356d1",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "329087a456efc1391e22dc4989550bafb80b9159",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "1a90fd14357c2ac180014ddc3dc34ffccec84179",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "336e808aab58e44544eacb4327bdc20cd792dbe2",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "e1c9ac40b44ae1bcdd9410d01236af059debe073",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "e6676ce05c171a7bcf455e4302b69bcb6aac8fa7",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "7fb1c66f7f97a94b66a96e3ea87ef32f0eaf1874",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "570bc0450a870c79180eb582b157bab71e46359a",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "6d493a85cfb93a831f51205fac8588d779993a3c",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "3d5490ab072744f4e76fe1e2b2f06aa544acab56",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "f7bbc2a37ce96052e8fd416e38aa98021ae67fdd",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "7f243928a2016bfc5686d95e72a5fa112778f1e8",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "30abb8a7d3de5e9efcaa3bce4db87ff9a3f1ca2d",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "10d3f39b00424de7f50e0edfd2235987953c0fdb",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "7853e45446df618abda1dee18e19bd8bd84f7cd9",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "ff1be34a9c7c6d1f40f556573f9743416e92fc20",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "0c31ef0ec5e92b974b676ee9788b9fa04fc1a233",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "010010756f7f2bd539b329f175d8b2a0e375b46e",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "2890f97bbc47897c5d3951ded9c304053bea7d00",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "ac504133d03c215e1ca05d9bbb2e16e0c682b145",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "9236d3b6a063137c41fc3ef10ca8528eb89a842c",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "4998a56dce23751c7c3ad9e3a886defca0262881",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "11fa69f2b8e725fa1502d561c3718265e836dd89",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "cc320375ea0929824848836a048d45ca3f8632a7",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "3eb7b6bbfd4ee5259fe3428cd4f4fb2bddf2ec95",
+      "reason": "duplicate"
+    },
+    {
+      "commit": "80b49f72858530fb3c2fb30a106c023300f84a41",
+      "reason": "duplicate"
+    }
+  ],
+  "schema": 1,
+  "repository": "mdiri-ai/SoduWork",
+  "channel": "stable",
+  "commits": [
+    "ba35a53cde8467ca859525d687013882acc98bca",
+    "ce60392f886d39592ea3941caa3564f062b6222d",
+    "b4a6193e5e3f5ac9fd6f89a9ee490efee347cb62",
+    "184638edc418424777b016fe6870dd4701bcce65",
+    "8b53f2983d18d0cc2a97ed0689ab0bbadee78d32",
+    "596f7541d653a622989dc2bd0ac62b4e5a03eee5",
+    "7020ebd590a09125a02a200bb38f21b1170f3811",
+    "3807cd75106733e1ebd3c1ddda7439ed8fb460bc",
+    "cbf4607ba9bd2d2d7473e22c2aec277492afdedf",
+    "12051917ddc4983c77a1103da87afd96429e1b90",
+    "339cb15885984f3505f8f5e48459ebc6c918443b",
+    "882a6016c88e06ac5168abafa827a21715d7f69b",
+    "10bd5ffb40eff3cdb2cdfc2684a210107db935c0",
+    "a1bdec87d41214b934f59cf24374023495a5f53f",
+    "30b0a372c6be005a711204a4ec48da7307a4ba09",
+    "9d295b2cb2a00a557b103f9ec4e2ab294204d2d0",
+    "b2af2678a5f81f223169e7122a156f138d68d711",
+    "1b8dd1b1b7d20ec48d0fb2d521edaa684f569918",
+    "20976c14acaa9f8bd5cc06e8a3b46bd7a5e7c8be",
+    "64b2cbed2f16e0ebf612a1b139eca1559c86437e",
+    "0a7bdc9af4975555243bb40dc1bc6d40dbd69830",
+    "13347195e2ffd7b5750afd676d58eabcbba9b3e0",
+    "66ddf6abe0be5892b8a1d229faaddef783f99be0",
+    "e50c647f4a153b10b4bdeddc89fbfd42b1bd99e1",
+    "3c39b7fa9b485b52486604173687a924278e116b",
+    "0801506e9ab38cdda7396914dc058a127f8c390e",
+    "1991b92b7bd31eef72dd0d71fd2474ab4bfbbea5",
+    "e0dcbff30dd3a417b858e579f9dc05cf44abdb71",
+    "e64927ddabb123e2e3fffcfc3b9dbbdcf1797530",
+    "ca7ee9091c1553a6ac7708ab0b171f25f843f0b8",
+    "bac7da07626efc9a9339de0b8914a5d60eb469b9",
+    "173ef7f57d16b0e7e0ff648cf62a1ab480d00c3b",
+    "79f7560a3aa687dc7e688f34726d5c18effc8fcf",
+    "9dec9f44c263bb3300f83cba6464562f34075a8f",
+    "36f30e599056244113865d59b238633f7f14bffc",
+    "744f67d948c5fad6ab8e44c204d7da02fe93febf",
+    "249413b868656ccfa76fdbccd0c65f93d5980801",
+    "95aefaaba0cf2293e75729a56cfc2194efd5ade2",
+    "423e2567a13f238fe91502acba5669832080483f",
+    "1af0d3dad75fc67f60fa24e6d6b61993b6d85f0a",
+    "8cdc03f4ce6febed7f5a2bbdfcc64bd1844a79e7",
+    "af364aa01c4e71e6f5dcd43a4901862704efabd0",
+    "f416d5e1a4fffc2861b5742c23da7e5a09cdc77b",
+    "3742e0e5ec6ba11f19daced7c49a5f00a5a47f54",
+    "4d1cf1266c9ae3c6c06ef53b96d8edbf38ebf4cc",
+    "c623ac8a1f32a10493e924fafe9363313dc5b608",
+    "d761b00585a89be0baaab40907aec647aa51f93f",
+    "77079a2ecf28f0801e4eea558eec21656627246a",
+    "c3487b971bd5c00836aaeea1ea90b76f81f55d1b",
+    "a4d19040ca3b7462b489869d683f898d6fcf4221",
+    "f1317d628acfc9712517a2204f7de8d114ce95d5",
+    "dbdf82f6a986445b47ea7a66fd9d878dfcaab85c",
+    "ee7771a8faaaac354366fa422ef406b8e6747eb7",
+    "ae54db9a5f86b065986342d7358c0124646b2392",
+    "2ae69b7a381bfa000233804ed35a8d0611343e0d",
+    "4415ad5bae49443b48819a12428137cade7c0495",
+    "d65168ff679a7c33817febd4b626a13b4f09d4ab",
+    "1830ffd34cd8fdae708782670348b10b37e97234",
+    "b32ab091eac48085784ab27622591d85adfd4937",
+    "11e509a739b50239193d1ebc7679740d4a609f99",
+    "ab67199ed6553d4b794e1146565e9029cadc3ebf",
+    "2e5db00e73d8458d60bdc0bfe5f933db9c2e4b59",
+    "d3a5dc416a7b39fb18b2ee781f4f5f13a12b0e2a",
+    "2216a66d22ae8c1a2202cca9b9954c3221b4cdba",
+    "fad84057c7190cea030f062337275b02f5686878",
+    "115a5aac08d207e051cee220d5c2e191a187cb2d",
+    "88c76824825ce3cfedbc661002a14a4844576656",
+    "1759aba904ee812b317cb6951afc6249b49995f9",
+    "a835716b3feb7efdb2a4259f1f259e46220d344d",
+    "a232b0228fc55bb12f41a6e297ce3d31764b936b",
+    "394f465dcf42167489f52e020d2283936da55270",
+    "07d402f89b0c73e38129adb024f65e930189104d",
+    "d047a2128482857c26c44c979efade9289cc3d59",
+    "42c33da70b8d257210a33884fad5b2825ca75ff5",
+    "f4b558c34e52596bad7a19b56b5a3e187dd316fa",
+    "565de3cd029a8ee1b9d3079b07d3a2517354e379",
+    "cf08c30c876a786e03205bcc4aa4a100106f3414",
+    "8fb80800915f35e8876800feaee9224f1d403af7",
+    "faa2bfaf8f961405a9ad8ccff14180cbfcb2e601",
+    "93e0bfd219f34df2310a2a3336c97e97374f0b11",
+    "6488f0bec4a0cdb5eda989c7f453b978b50e9de3",
+    "56d61e8fd55bb54ff16771a498de9f8e4b841da3",
+    "f5d0448a27860e66ad287714688d590f05612745",
+    "c1dc9aa59feb33e0f929e82d05680f23f1c655d9",
+    "9edf94567118e9d3887e268802bed2be51df555c",
+    "1dee1131c499f3c59ea5dd69b8bb2e2e0dac849b",
+    "c2d41311d3b912657e0a1335d1c304511a788751",
+    "52264c08267f113da2b61f77a0c5da23dcc117de",
+    "3e7550190c798ccb2b3f4cbb95ad493cae047987",
+    "8458cc4b92c06319c8a261ef0c705f1267e5bd9b",
+    "a6aa6ff971be4a59d056027058e6a358e6c86d13",
+    "91593a87eded9c46185a143a74b4b2ff7cfec6de",
+    "8394dc1823e5f5ea6a09a2e0c6add1de88353d4c",
+    "04457b5bd846f916550ad3056bee858e4b0036d1",
+    "249c2115899c2aae047dd3e1d39ff9d50f5a5784",
+    "5770333d33d83ebc5ce0a918b5932bd7ec2ef3bc",
+    "b7bfed6ffb2800023f025dac30647662548ed272",
+    "0176a32aff3e68bc9a1cdb8b5670d5cd53ea6e14",
+    "79ccd857481eec12c986f4031bc85d3fffcfafdd",
+    "749d62b7aac0acce7453dfccc9705b56b1072013",
+    "15f36192753eaaa4e6163c7558c38c4c6164ae00",
+    "9799e9f788c154452032d71a98a3d9bb45234c4c",
+    "9005c12cac2eaa8a3b16e1f15b79c48e7aefffa8",
+    "bd7376e8cf6c7a93134108991186239acf49a9f7",
+    "840cc097b7b3b889e454cbe2320c365fca0e30c0",
+    "8ceb8154b57b2c8f5c4247398f1b44481ff5ba84",
+    "6554242b438fa52135e617811d5344dab7c6c400",
+    "1f174c4e9df1f6232a9d7edb2f3cd18fedc87786",
+    "5f82e502262deef61605fccea313dc5fbfac73a2",
+    "906f5c76b3837190f58797e1bad2ead8aab5fefa",
+    "f6498a1bf3d283fdd6fe469363f84318916a7331",
+    "aeafa5ac62c5c2524600fd5844403f8d07a8f74d",
+    "50c2afdb655ad1da11c75e1d44b0c96b12cf418d",
+    "ea126974c1957c94777db7a9ceb6527664447f7e",
+    "7ff3b345fd2d3d09ebce4e62aa02f8c590f1dad8",
+    "797e31141fb01179face35d69878789eb57bd0a1",
+    "c762fdd8d415803f216037b484a579d0450fb7ce",
+    "87e832a06df84c912cdd19c3eea7a2dbbf28635c",
+    "b935cccfddc9dd095f97b0dcef259d8e38568974",
+    "f9f40a5887ec2e2bd6c8623e7f525bb4d107b84e",
+    "9818c578c5b434c418e36ece24e80b476db0b823",
+    "1c2248f9222a364e82b3e5a95791c2f709b703cc",
+    "d3e3a882024d30b1344ced8fc526b35f166cea7d",
+    "b6bb8c4db121a7310d6e240ef72bd00079e7f471",
+    "a1d600afc4c260d557795710c50e50127dcc5323",
+    "a610d94ac5f38d3c0059f1edbad29359caf5922a",
+    "d8dd74281ca3a807154e2ed55515323ded799d6c",
+    "d8e120292ac93a43906a7584bbd14814728d11cd",
+    "26f9440be10164bc8be543a2ada44558368eacd0",
+    "4e7b2feb96398e36e2e4170936a4d655824333f7",
+    "6f294e070f95fa53b6c356eaab01db92f1d3449a",
+    "1af07ff73f640eefe5b14840a7f478242b431363",
+    "ff55c40e4292a6d985a7a7b154d7f820b0d51676",
+    "9fb2d2e7e48c834002b716feb511e10cc41732e0",
+    "65cc47a557a557a3023dc67c8ad0f60802b20d15",
+    "1d0e3e0bf07d2103dcf86e8e315613d3c8473fbb",
+    "fafca0d136840c1fef1b16832a0735441afd1198",
+    "ef36576982dcc12922b3a7ace97558c062000e51",
+    "7d15641a47076bd171f5531c1ee346a749909e4f",
+    "a6e835fee2b95724a919c4576e9eccda1b81c908",
+    "2561cd1f6fad515a939467029971e768156a3772",
+    "e9f1610ea954b55f79f9c0317092f98038e0df93",
+    "76af276f6ccad7c7abbbe71ca6671b1f2dd5d89d",
+    "1be22877a7ea927b59b028b164353b84cc7b9590",
+    "9ba99e1a84d8b2faf67997bbbd9fde580d6b05f1",
+    "0789f16864d4f118024307a1eed2babb5938b9f7",
+    "ea05d814df00057fe27209cefce0cc9fd4d5cd64",
+    "f7c782064c3793ff614efab5725105673edac93e",
+    "1c822f5a386ec73167cd116c8d5272de44c4e3d0",
+    "2407f4bb3de11c3f99b7c4df373614b4a643795c",
+    "9b13e2d9049612caf7f2550ceff8fe8d25ab742b",
+    "5cafed11df8628c7c2e02c15530fb57bd60a64a3",
+    "893bae0597993283dd1c51c7971fab0d25930f2e",
+    "138464d3829eb4a1f06a430bcff7002a92f50369",
+    "f6ec7a55a572258a5d7297f8aeb4cad7f494c863",
+    "dcfc2d11b6bc3937d00403a93c35fd5f9eaa74f9",
+    "21b0a2d4def3e607c5f96fdfe8f2ae838887e856",
+    "eb8a01a28d1a82dfab100b0168f8fef7e8daa7e9",
+    "e44164c2d9508e996cfc97653df043f978d7dc38",
+    "dbae843bf9395f8758468db32a4ecc410bb4b8c5",
+    "935eda35cc13c54c6f44af795e9c04f0a701e8b9",
+    "b0711a348decefec339ed7554136eb36b7b56d4e",
+    "244b8fe55eaf47111e568d566311e543ae4d60fa",
+    "05f996b7cfd8755f4fa3b7146a6a39cfdf81fd45",
+    "6691fa5b4ece4d21bc868e57e0d43b409582d927",
+    "56aed7b5fffaafa419019118706c72f6cbe44278",
+    "1a36734a96c4c83ec34ee431cc24440b5866dbf9",
+    "7cc1103920b8484990fb3b6c4ef513ad1e605af0",
+    "de129ef4d7e5936eb3dd418fbf5c6a4f46f7582d",
+    "d0b4e679e0bef3e7bc93859f4b7a3a1fdfe356d1",
+    "243877a86202fad2470950ca0515d3c735ccce87",
+    "329087a456efc1391e22dc4989550bafb80b9159",
+    "1a90fd14357c2ac180014ddc3dc34ffccec84179",
+    "336e808aab58e44544eacb4327bdc20cd792dbe2",
+    "e1c9ac40b44ae1bcdd9410d01236af059debe073",
+    "e6676ce05c171a7bcf455e4302b69bcb6aac8fa7",
+    "475d907c0a2802755fcae78dcc7864ba8f972afe",
+    "7fb1c66f7f97a94b66a96e3ea87ef32f0eaf1874",
+    "570bc0450a870c79180eb582b157bab71e46359a",
+    "6d493a85cfb93a831f51205fac8588d779993a3c",
+    "3d5490ab072744f4e76fe1e2b2f06aa544acab56",
+    "f7bbc2a37ce96052e8fd416e38aa98021ae67fdd",
+    "7f243928a2016bfc5686d95e72a5fa112778f1e8",
+    "30abb8a7d3de5e9efcaa3bce4db87ff9a3f1ca2d",
+    "10d3f39b00424de7f50e0edfd2235987953c0fdb",
+    "7853e45446df618abda1dee18e19bd8bd84f7cd9",
+    "ff1be34a9c7c6d1f40f556573f9743416e92fc20",
+    "ac73639fd9e646c88528586889b646041c493dac",
+    "6ef9e98e68a32126b86b8eb38c84d541d6d0ca11",
+    "0c31ef0ec5e92b974b676ee9788b9fa04fc1a233",
+    "7f75e3a1d15b2e91ea5e1267de8f561994b0d9f8",
+    "010010756f7f2bd539b329f175d8b2a0e375b46e",
+    "d5ffdb7407e0e471423fecc9949aa5c460d33995",
+    "2890f97bbc47897c5d3951ded9c304053bea7d00",
+    "ac504133d03c215e1ca05d9bbb2e16e0c682b145",
+    "23d617e36d14011459aea096ffac67585a238542",
+    "9236d3b6a063137c41fc3ef10ca8528eb89a842c",
+    "4998a56dce23751c7c3ad9e3a886defca0262881",
+    "99be17d37314f14dc474cbd8dceb11b126cc72c8",
+    "11fa69f2b8e725fa1502d561c3718265e836dd89",
+    "672dc9f4af1b8e0209c5bdc89b1d060b6a8d4169",
+    "05b54356eb09efe2e0a33f16cced84da27843511",
+    "cc320375ea0929824848836a048d45ca3f8632a7",
+    "3eb7b6bbfd4ee5259fe3428cd4f4fb2bddf2ec95",
+    "80b49f72858530fb3c2fb30a106c023300f84a41"
+  ]
+}
