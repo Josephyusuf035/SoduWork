@@ -177,13 +177,28 @@ def generate(ctx, output, root=ROOT):
     return record
 
 
+def model_integer_setting(name, default, maximum):
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    require(re.fullmatch(r"[0-9]+", raw), f"{name} must be a positive integer")
+    value = int(raw)
+    require(1 <= value <= maximum, f"{name} must be between 1 and {maximum}")
+    return value
+
+
 def model_notes(ctx, tag, changes):
     key, model = os.environ.get("RELEASE_NOTES_API_KEY"), os.environ.get("RELEASE_NOTES_MODEL")
-    endpoint = os.environ.get("RELEASE_NOTES_API_URL") or "https://api.openai.com/v1/chat/completions"
+    endpoint = os.environ.get("RELEASE_NOTES_API_URL", "").strip()
+    secret_name = os.environ.get("RELEASE_NOTES_API_KEY_SECRET", "").strip()
+    require(endpoint or secret_name in ("", "RELEASE_NOTES_API_KEY"), "Set an explicit endpoint for the selected API key Secret")
+    endpoint = endpoint or "https://api.openai.com/v1/chat/completions"
     from urllib.parse import urlsplit
     url = urlsplit(endpoint)
     require(key and model, "Configure RELEASE_NOTES_API_KEY/MODEL or commit reviewed docs/releases/<version>.json")
     require(url.scheme == "https" and url.hostname and not (url.username or url.password or url.query or url.fragment), "Invalid model endpoint")
+    timeout = model_integer_setting("RELEASE_NOTES_TIMEOUT_SECONDS", 300, 600)
+    max_tokens = model_integer_setting("RELEASE_NOTES_MAX_TOKENS", 32768, 131072)
     aliases = {f"c{i+1}": change["commit"] for i, change in enumerate(changes)}
     compact = [{"commit": f"c{i+1}", "title": change["message"].splitlines()[0][:500]}
                for i, change in enumerate(changes)]
@@ -194,7 +209,7 @@ def model_notes(ctx, tag, changes):
         if re.search("KEY|TOKEN|SECRET|PASSWORD", name) and len(value) >= 4:
             raw = raw.replace(value, "[REDACTED]")
     raw = re.sub(r"https?://[^\s\"<>]+", "[URL]", raw)
-    body = {"model": model, "max_tokens": 32768, "messages": [{"role": "system", "content": PROMPT}, {"role": "user", "content": raw}],
+    body = {"model": model, "max_tokens": max_tokens, "messages": [{"role": "system", "content": PROMPT}, {"role": "user", "content": raw}],
             "response_format": {"type": "json_object"}}
     request = urllib.request.Request(endpoint, data=json.dumps(body).encode(),
               headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
@@ -202,7 +217,7 @@ def model_notes(ctx, tag, changes):
         def redirect_request(self, *args, **kwargs):
             return None
     try:
-        with urllib.request.build_opener(NoRedirect).open(request, timeout=300) as response:
+        with urllib.request.build_opener(NoRedirect).open(request, timeout=timeout) as response:
             reply = json.loads(response.read(500001))
         choice = reply["choices"][0]
         require(choice["finish_reason"] == "stop", "Model response incomplete")

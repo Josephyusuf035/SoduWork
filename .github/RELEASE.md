@@ -98,10 +98,31 @@ native builds. It compares the last published desktop ancestor release with the
 candidate commit, including merge commits, and sends only commit titles to the model
 (no commit bodies or file lists). Reviewed `docs/releases/X.Y.Z.json`
 content takes precedence; otherwise the job calls the configured OpenAI-compatible
-model. Configure secret `RELEASE_NOTES_API_KEY` and variables
-`RELEASE_NOTES_API_URL` (full chat-completions endpoint) and `RELEASE_NOTES_MODEL`.
-The request uses system/user messages and a 32768-token output budget (including thinking), without
-`reasoning_effort`. These credentials are supplied only to the generation step.
+model. Configure these repository variables under Settings → Secrets and variables
+→ Actions → Variables; store the API key under Secrets:
+
+| Variable | Meaning | Default |
+| --- | --- | --- |
+| `RELEASE_NOTES_API_URL` | Full HTTPS chat-completions endpoint | `https://api.openai.com/v1/chat/completions` |
+| `RELEASE_NOTES_MODEL` | Provider's model ID | Required for model generation |
+| `RELEASE_NOTES_API_KEY_SECRET` | Name of the GitHub Secret containing the matching key, never the key value | `RELEASE_NOTES_API_KEY` |
+| `RELEASE_NOTES_TIMEOUT_SECONDS` | Network-operation timeout, integer from 1 to 600 seconds | `300` |
+| `RELEASE_NOTES_MAX_TOKENS` | Output token budget including thinking, integer from 1 to 131072 | `32768` |
+
+For an existing `OPENROUTER_API_KEY` Secret, set `RELEASE_NOTES_API_KEY_SECRET`
+to `OPENROUTER_API_KEY`, `RELEASE_NOTES_API_URL` to
+`https://openrouter.ai/api/v1/chat/completions`, and `RELEASE_NOTES_MODEL` to the
+chosen model ID. Change the endpoint, model and secret name together when switching
+providers. A missing selected Secret does not fall back to another provider's key.
+A non-default Secret name requires an explicit endpoint; it never uses the
+OpenAI endpoint implicitly.
+Model and provider access rules still apply; a free model may be rate limited.
+
+Empty numeric variables use their defaults. Invalid values leave generated notes
+unavailable without making a model request. The request uses system/user messages,
+without `reasoning_effort` or disabling thinking. Credentials are supplied only to
+the generation step. Changing these variables affects new generation runs;
+reruns that restore an existing artifact keep that artifact's notes.
 Source-only and Hub-only diagnostic builds do not generate desktop notes.
 
 The JSON contains Chinese, English, Japanese and Korean prose with matching

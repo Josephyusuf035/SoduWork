@@ -297,10 +297,61 @@ class NotesTests(unittest.TestCase):
         evidence = json.loads(sent['messages'][1]['content'])
         self.assertEqual([c['commit'] for c in evidence['commits']], ['c1', 'c2'])
         self.assertEqual(sent['max_tokens'], 32768)
+        self.assertEqual(opener.open.call_args.kwargs['timeout'], 300)
         self.assertTrue(all(set(c) == {'commit', 'title'} for c in evidence['commits']))
         self.assertTrue(all(c['title'] == 'Fixture title' for c in evidence['commits']))
         self.assertNotIn('Long body', sent['messages'][1]['content'])
         self.assertNotIn('client/example.js', sent['messages'][1]['content'])
+
+    def test_model_request_uses_configured_limits_and_empty_defaults(self):
+        result = {key: copy.deepcopy(self.record[key]) for key in ['locales', 'sources']}
+        result['sources'][0]['commits'] = ['c1']
+        response = {'choices': [{'finish_reason': 'stop', 'message': {'content': json.dumps(result)}}]}
+        changes = [{'commit': sha, 'message': 'Fixture title'} for sha in self.record['commits']]
+        for timeout, budget, expected_timeout, expected_budget in [
+                ('', '', 300, 32768), ('  ', '  ', 300, 32768),
+                (' 120 ', ' 8192 ', 120, 8192), ('600', '131072', 600, 131072), ('1', '1', 1, 1)]:
+            with self.subTest(timeout=timeout, budget=budget):
+                opener = unittest.mock.Mock()
+                opener.open.return_value = io.BytesIO(json.dumps(response).encode())
+                env = {'RELEASE_NOTES_API_KEY': 'fixture-model-key', 'RELEASE_NOTES_MODEL': 'fixture-model',
+                       'RELEASE_NOTES_API_URL': 'https://model.example.test/v1/chat/completions',
+                       'RELEASE_NOTES_API_KEY_SECRET': 'MODEL_TEST_KEY',
+                       'RELEASE_NOTES_TIMEOUT_SECONDS': timeout, 'RELEASE_NOTES_MAX_TOKENS': budget}
+                with patch.dict(os.environ, env, clear=True), \
+                        patch.object(notes.urllib.request, 'build_opener', return_value=opener):
+                    generated = notes.model_notes(self.ctx, 'v1.2.2', changes)
+                self.assertEqual(generated['sources'], self.record['sources'])
+                request = opener.open.call_args.args[0]
+                self.assertEqual(request.full_url, env['RELEASE_NOTES_API_URL'])
+                self.assertEqual(json.loads(request.data)['max_tokens'], expected_budget)
+                self.assertEqual(opener.open.call_args.kwargs['timeout'], expected_timeout)
+
+    def test_invalid_model_configuration_leaves_notes_blank_without_network(self):
+        cases = [{name: value} for name, maximum in [('RELEASE_NOTES_TIMEOUT_SECONDS', 600),
+                                                    ('RELEASE_NOTES_MAX_TOKENS', 131072)]
+                 for value in ['invalid', '1.5', 'nan', '0', '-1', str(maximum + 1)]]
+        cases += [{'RELEASE_NOTES_API_KEY': ''},
+                  {'RELEASE_NOTES_API_KEY_SECRET': 'MODEL_TEST_KEY', 'RELEASE_NOTES_API_URL': ''}]
+        for updates in cases:
+            with self.subTest(updates=updates):
+                env = {'RELEASE_NOTES_API_KEY': 'fixture-model-key', 'RELEASE_NOTES_MODEL': 'fixture-model',
+                       'RELEASE_NOTES_API_URL': 'https://model.example.test/v1/chat/completions', **updates}
+                with patch.dict(os.environ, env, clear=True), \
+                        patch.object(notes.urllib.request, 'build_opener') as network:
+                    result = self.generate_with_fixture_evidence(wraps=notes.model_notes)
+                self.assert_blank_record(result)
+                network.assert_not_called()
+                (self.root / notes.NAME).unlink()
+
+    def test_reviewed_notes_ignore_invalid_model_configuration(self):
+        self.save(self.root / 'docs/releases/1.2.3.json', self.record)
+        with patch.dict(os.environ, {'RELEASE_NOTES_MAX_TOKENS': 'invalid',
+                                     'RELEASE_NOTES_TIMEOUT_SECONDS': '-1'}, clear=True), \
+                patch.object(notes.urllib.request, 'build_opener') as network:
+            result = self.generate_with_fixture_evidence(side_effect=AssertionError('Must not call model'))
+        self.assertEqual(result['locales'], self.record['locales'])
+        network.assert_not_called()
 
     def test_generated_notes_over_five_highlights_are_left_blank(self):
         result = {key: copy.deepcopy(self.record[key]) for key in ['locales', 'sources', 'omitted']}
