@@ -247,6 +247,8 @@ function _historyIndex(app) {
         taskIds: binding.taskIds, taskBindings: binding.taskBindings, activeTaskId: binding.activeTaskId,
         collaboration: Boolean(binding.taskId), createdAt: +new Date(s.createdAt || s.modified),
         at: +new Date(s.modified), count: s.messageCount || 0,
+        // Only a cut-off turn sets a state; recorded outcomes stay authoritative otherwise.
+        ...(historyState.archivedTurnState(entries) === 'interrupted' ? { state: 'interrupted' } : {}),
       };
     } });
     _historyIndexes.set(root, index);

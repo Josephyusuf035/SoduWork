@@ -11,6 +11,25 @@ function presenceState(status) {
   return status === 'idle' ? 'completed' : 'archived';
 }
 
+/* A cold archive row has no live handle. A turn that ends with tool calls but
+   no results, with tool results the model never answered, or with an
+   unanswered user message was cut off (for example by quitting the app) and
+   must not be presented as completed. Live handles override this state. */
+function archivedTurnState(entries) {
+  const stored = Array.isArray(entries) ? entries : [];
+  for (let index = stored.length - 1; index >= 0; index -= 1) {
+    const message = stored[index]?.type === 'message' && stored[index].message;
+    if (!message) continue;
+    if (message.role === 'assistant') {
+      if (message.stopReason === 'toolUse') return 'interrupted';
+      if (message.stopReason === 'aborted') return 'aborted';
+      return 'idle';
+    }
+    if (message.role === 'toolResult' || message.role === 'user') return 'interrupted';
+  }
+  return 'idle';
+}
+
 function messageTitle(snapshot) {
   const first = ((snapshot && snapshot.messages) || []).find(item => item && item.role === 'user');
   const raw = first && (first.text || first.content || first.message);
@@ -55,4 +74,4 @@ function mergeHistory(diskRows, handles, limit) {
     .slice(0, Math.max(1, Number(limit) || 20));
 }
 
-module.exports = { presenceState, messageTitle, originalMessageTitle, mergeHistory };
+module.exports = { presenceState, archivedTurnState, messageTitle, originalMessageTitle, mergeHistory };
