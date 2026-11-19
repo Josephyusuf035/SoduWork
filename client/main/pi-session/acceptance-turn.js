@@ -251,11 +251,12 @@ async function prepare({ identity, taskId, turnId = '', instruction = '', reques
          */
         assertExecutionSession(current.task, runtime, currentIdentity);
       if (key(current) !== key(snapshot) || referenceKey(current) !== preparedReferences ||
-          (auto && refOptions.length && JSON.stringify(current.evidenceRefOptions || null) !== preparedRefOptions) ||
           JSON.stringify(current.requirementTimeline || null) !== preparedTimeline)
         throw Error('验收版本已变化（含补充说明或退回意见），请回到需求详情重新发起分析');
       if (current.canDecide !== true) throw Error('本次验收权限已变化，请刷新需求');
       assertAutomaticReview(current, auto);
+      if (auto && refOptions.length && JSON.stringify(current.evidenceRefOptions || null) !== preparedRefOptions)
+        throw Error('验收版本已变化（含补充说明或退回意见），请回到需求详情重新发起分析');
     } };
   if (auto) {
     if (!runtime?.handle?.cwd) throw Error('验收工作目录尚未就绪，请重新打开验收会话');

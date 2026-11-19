@@ -431,6 +431,29 @@ class AcceptanceReviewTests(unittest.IsolatedAsyncioTestCase):
         refs = (await self.context())["evidenceRefOptions"]
         self.assertEqual(refs, [{"kind": "commit", "ref": "artifact:artifact-1:commit", "fingerprint": "c" * 40}])
 
+    async def test_committed_countersign_retry_keeps_its_report_after_cited_attachment_is_removed(self):
+        row = models.Attachment(id="reviewed-file", task_id=self.task.id, filename="Essay.md",
+            content_type="text/plain", role="output", size=7,
+            evidence_meta={"sha256": "a" * 64, "verification": {"state": "passed"}})
+        entry = {"id": row.id, "name": row.filename, "sha256": "a" * 64, "size": 7,
+                 "role": "output", "category": "primary", "validation": {"state": "passed"}}
+        self.session.add(row)
+        self.artifact.kind = "files"
+        self.artifact.manifest = {"schemaVersion": "soduwork.delivery/1", "complete": True,
+                                  "files": [entry], "primary": [entry], "problems": []}
+        self.request.required_count = 2
+        await self.session.commit()
+        body = self.body()
+        refs = [{"kind": "file", "ref": row.id, "fingerprint": "a" * 64}]
+        body["report"]["checks"][0]["evidenceRefs"] = refs
+        self.assertEqual((await api.auto_review_task_artifact(self.task.id, body, self.client, self.session))["verdict"], "pending")
+        await self.session.delete(row)
+        await self.session.commit()
+        self.assertTrue((await api.auto_review_task_artifact(self.task.id, body, self.client, self.session))["already"])
+        saved = self.request.context["aiAcceptanceReports"][self.actor.id]["report"]
+        self.assertEqual(saved["checks"][0]["evidenceRefs"], refs)
+        self.assertEqual(len((await self.session.scalars(select(am.ApprovalDecision))).all()), 1)
+
     async def test_legacy_attachment_without_a_frozen_digest_is_still_readable(self):
         row = models.Attachment(id="legacy-file", task_id=self.task.id, filename="Legacy.md",
             content_type="text/plain", uploaded_by="agent:old", size=7, role="input")
