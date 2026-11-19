@@ -288,16 +288,30 @@ const options = f => ({ app: f.app, ref: 'chat-switch', cwd: f.root, identity: i
   resolvePlugins: async ids => ({ items: ids.map(pluginId => ({ pluginId, name: 'Meeting', context: 'Fixture plugin context' })) }) });
 async function send(handle, text) { const sent = handle.submit(text, [], {}); assert.equal(sent.accepted, true); const done = await sent.completion; assert.equal(done.ok, true, JSON.stringify(done)); }
 
+// Give the session cutoff and artifact mtimes distinct, whole-second values.
+function artifactClock(t) {
+  let now = Math.ceil(Date.now() / 1000) * 1000 + 60000;
+  t.mock.method(Date, 'now', () => now);
+  return {
+    write(file, content) {
+      fs.writeFileSync(file, content);
+      now += 2000;
+      fs.utimesSync(file, now / 1000, now / 1000);
+    },
+    advance() { now += 2000; },
+  };
+}
+
 test('switching Runner preserves an indexed image without expanding the new delivery', async t => {
-  const f = fixture(t), runtime = require('../main/conversation/artifact-runtime');
+  const clock = artifactClock(t), f = fixture(t), runtime = require('../main/conversation/artifact-runtime');
   const handle = (await f.bridge.open({ ...options(f), adapterId: 'dsh' })).session;
   const image = path.join(f.root, 'goldfish.png');
-  fs.writeFileSync(image, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5F0AAAAASUVORK5CYII=', 'base64'));
+  clock.write(image, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5F0AAAAASUVORK5CYII=', 'base64'));
   const before = await runtime.snapshotAsync(handle);
   const item = before.items.find(row => row.name === 'goldfish.png');
   assert.ok(item);
   assert.equal((await runtime.action(handle, handle.ref, item.artifactId, 'image-full', {})).ok, true);
-  await new Promise(resolve => setTimeout(resolve, 20));
+  clock.advance();
   assert.equal((await handle.selectAgent('kimi')).ok, true);
   const after = await runtime.snapshotAsync(handle);
   assert.ok(after.items.some(row => row.artifactId === item.artifactId));
@@ -308,16 +322,12 @@ test('switching Runner preserves an indexed image without expanding the new deli
 
 for (const [from, to] of [['pi', 'dsh'], ['dsh', 'pi'], ['dsh', 'codex-harness'], ['dsh', 'qwen'], ['dsh', 'opencode']]) {
   test(`historical outputs remain addressable when switching ${from} to ${to}`, async t => {
-    const f = fixture(t, { nativeOutputs: true }), runtime = require('../main/conversation/artifact-runtime');
+    const clock = artifactClock(t), f = fixture(t, { nativeOutputs: true }), runtime = require('../main/conversation/artifact-runtime');
     const handle = (await f.bridge.open({ ...options(f), adapterId: from })).session;
-    const file = path.join(f.root, 'saved.txt');
-    fs.writeFileSync(file, 'Retained content');
-    // Filesystem write timestamps can precede the session's wall-clock boundary.
-    const writtenAt = new Date();
-    fs.utimesSync(file, writtenAt, writtenAt);
+    clock.write(path.join(f.root, 'saved.txt'), 'Retained content');
     const item = (await runtime.snapshotAsync(handle)).items.find(row => row.name === 'saved.txt');
     assert.ok(item);
-    await new Promise(resolve => setTimeout(resolve, 20));
+    clock.advance();
     const result = await handle.selectAgent(to);
     assert.equal(result.ok, true, result.reason);
     const after = await runtime.snapshotAsync(handle), retained = after.items.find(row => row.artifactId === item.artifactId);
@@ -330,15 +340,17 @@ for (const [from, to] of [['pi', 'dsh'], ['dsh', 'pi'], ['dsh', 'codex-harness']
 }
 
 test('repeated switches and cold reopening retain exact outputs without claiming them as new delivery', async t => {
-  const f = fixture(t), runtime = require('../main/conversation/artifact-runtime');
+  const clock = artifactClock(t), f = fixture(t), runtime = require('../main/conversation/artifact-runtime');
   const handle = (await f.bridge.open({ ...options(f), adapterId: 'dsh' })).session;
-  fs.writeFileSync(path.join(f.root, 'first.txt'), 'First content');
+  clock.write(path.join(f.root, 'first.txt'), 'First content');
   const first = (await runtime.snapshotAsync(handle)).items.find(row => row.name === 'first.txt');
-  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.ok(first, 'the first runtime indexes its output before switching');
+  clock.advance();
   assert.equal((await handle.selectAgent('kimi')).ok, true);
-  fs.writeFileSync(path.join(f.root, 'second.txt'), 'Second content');
+  clock.write(path.join(f.root, 'second.txt'), 'Second content');
   const second = (await runtime.snapshotAsync(handle)).items.find(row => row.name === 'second.txt');
-  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.ok(second, 'the second runtime indexes its output before switching');
+  clock.advance();
   assert.equal((await handle.selectAgent('qwen')).ok, true);
   const id = handle.sessionId;
   const saved = segments.read(f.app, id).artifactHistory;
