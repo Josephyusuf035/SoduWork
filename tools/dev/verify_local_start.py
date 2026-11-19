@@ -119,12 +119,18 @@ def desktop_ready(child, state, previous_pid=None):
             raise AssertionError(f'Desktop session stopped; see {child.launcher_log} and {state / "desktop.log"}')
         if journal.is_file():
             entries = [json.loads(line) for line in journal.read_text(encoding='utf-8').splitlines() if line]
-            # Read only events after the previous launch, including when older PIDs are reused.
+            # Use the FIRST ready event from the previous launch as the boundary.
+            # The OS may recycle that PID for the new desktop process, so the last
+            # match can already belong to the very launch we are waiting for; taking
+            # it would cut away the new ready event and report a false timeout.
             previous = [index for index, row in enumerate(entries)
                         if row['event'] == 'ready' and row.get('pid') == previous_pid]
-            current = entries[previous[-1] + 1:] if previous else entries
+            current = entries[previous[0] + 1:] if previous else entries
+            # `current` is already sliced after the previous launch, so a new ready
+            # event is valid even if it reuses `previous_pid`. Filtering it out by
+            # PID here would discard exactly the recycled-PID case.
             ready = [row for row in current if row['event'] == 'ready'
-                     and row.get('pid') != previous_pid and process_alive(row['pid'])]
+                     and process_alive(row['pid'])]
             if ready:
                 latest = ready[-1]
                 assert not any(row['event'] in ('uncaught-exception-monitor', 'unhandled-rejection')

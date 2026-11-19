@@ -166,6 +166,45 @@ class LocalStartupTests(unittest.TestCase):
             self.assertEqual(verify.desktop_ready(Child(), self.state, previous_pid=200), 300)
             self.assertEqual(slept.call_count, 1, 'Historical ready entries must not satisfy a restart')
 
+    def test_desktop_restart_accepts_ready_event_that_reuses_the_previous_pid(self):
+        # The OS can recycle the PID of the previous desktop process. The new
+        # launch is identified by its journal position/runId, not by having a
+        # different PID; a recycled PID must not be reported as a false timeout.
+        import json
+        journal = self.state / 'desktop-profile/diagnostics/lifecycle.jsonl'
+        journal.parent.mkdir(parents=True)
+        journal.write_text(json.dumps({'event': 'ready', 'pid': 200, 'runId': 'previous'}) + '\n',
+                           encoding='utf-8')
+        class Child:
+            launcher_log = 'isolated launcher fixture'
+            def poll(self):
+                return None
+        def append_ready(_delay):
+            with journal.open('a', encoding='utf-8') as stream:
+                stream.write(json.dumps({'event': 'ready', 'pid': 200, 'runId': 'new'}) + '\n')
+        with patch.object(verify, 'process_alive', return_value=True), \
+                patch.object(verify.time, 'sleep', side_effect=append_ready) as slept:
+            self.assertEqual(verify.desktop_ready(Child(), self.state, previous_pid=200), 200)
+            self.assertEqual(slept.call_count, 1, 'The recycled-PID ready event must satisfy the restart')
+
+    def test_desktop_restart_boundary_uses_first_previous_ready_not_last(self):
+        # With two historical ready events carrying the same PID, only the first
+        # belongs to the previous launch; the rest are newer and must stay in the
+        # slice that is inspected for the current launch.
+        import json
+        journal = self.state / 'desktop-profile/diagnostics/lifecycle.jsonl'
+        journal.parent.mkdir(parents=True)
+        entries = [{'event': 'ready', 'pid': 200, 'runId': 'r1'},
+                   {'event': 'ready', 'pid': 200, 'runId': 'r2'}]
+        journal.write_text(''.join(json.dumps(row) + '\n' for row in entries), encoding='utf-8')
+        class Child:
+            launcher_log = 'isolated launcher fixture'
+            def poll(self):
+                return None
+        with patch.object(verify, 'process_alive', return_value=True), \
+                patch.object(verify.time, 'sleep', side_effect=lambda _delay: self.fail('should not sleep')):
+            self.assertEqual(verify.desktop_ready(Child(), self.state, previous_pid=200), 200)
+
     def test_node_version_matches_runtime_dependency_minimum(self):
         with patch.object(build.shutil, 'which', side_effect=lambda name: name), patch.object(build, '_check_npm_version'):
             for version in ['v22.18.0', 'v20.20.0', 'v22.18.9-rc.1', 'v26.0', 'v26.0.0-invalid suffix']:
