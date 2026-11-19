@@ -1,4 +1,6 @@
-"""Independent PostgreSQL pool. Enabling storage never migrates the Hub DB."""
+"""Independent PostgreSQL pool and instant-app asset readiness checks."""
+import os
+from pathlib import Path
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -62,8 +64,18 @@ async def check():
     settings = get_settings()
     object_store = (settings.jiyong_object_endpoint and settings.jiyong_object_access_key
                     and settings.jiyong_object_secret_key and settings.jiyong_object_bucket)
-    if not object_store and not settings.jiyong_asset_dir:
-        raise CloudError('请配置云端即用对象存储或 jiyong_asset_dir')
+    if not object_store:
+        directory = str(settings.jiyong_asset_dir or '').strip()
+        if not directory or not os.path.isabs(directory):
+            raise CloudError('请配置绝对路径的 jiyong_asset_dir 或完整 COS 配置')
+        try:
+            path = Path(directory)
+            path.mkdir(parents=True, exist_ok=True)
+            probe = path / '.soduwork-write-check'
+            probe.write_bytes(b'')
+            probe.unlink(missing_ok=True)
+        except OSError as exc:
+            raise CloudError('即用素材目录不可写，请检查共享挂载和目录权限') from exc
     return {'ok': True, 'location': 'cloud', 'engine': 'postgresql', 'schemaVersion': 1}
 
 
