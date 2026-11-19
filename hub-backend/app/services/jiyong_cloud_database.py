@@ -60,9 +60,10 @@ async def check():
     except Exception as exc:
         raise CloudError('云端即用数据库不可用，请检查连接和独立数据库迁移') from exc
     settings = get_settings()
-    if not (settings.jiyong_object_endpoint and settings.jiyong_object_access_key
-            and settings.jiyong_object_secret_key and settings.jiyong_object_bucket):
-        raise CloudError('请配置云端即用对象存储（COS/S3）')
+    object_store = (settings.jiyong_object_endpoint and settings.jiyong_object_access_key
+                    and settings.jiyong_object_secret_key and settings.jiyong_object_bucket)
+    if not object_store and not settings.jiyong_asset_dir:
+        raise CloudError('请配置云端即用对象存储或 jiyong_asset_dir')
     return {'ok': True, 'location': 'cloud', 'engine': 'postgresql', 'schemaVersion': 1}
 
 
