@@ -125,6 +125,23 @@ the generation step. Changing these variables affects new generation runs;
 reruns that restore an existing artifact keep that artifact's notes.
 Source-only and Hub-only diagnostic builds do not generate desktop notes.
 
+For OpenRouter, generation requires a `:free` model or `openrouter/free`. Before
+inference, the job checks the public model catalog and verifies zero pricing,
+including request fees. Missing prices, conditional pricing, catalog failures,
+missing models or nonzero prices leave notes empty without sending an inference
+request. OpenRouter requests also set zero provider price limits for prompt,
+completion and request charges. The check applies to the main, EU and US
+OpenRouter endpoints; other configured services keep their existing request format.
+
+Generation logs record the model, timing, request settings, HTTP status and a
+bounded failure category. They never include keys, private endpoint addresses,
+commit text, provider response bodies or reasoning content. Failed generation
+creates a GitHub Actions warning annotation and a job summary while packaging
+continues. The warning distinguishes access denial, rate limits, missing or paid
+models, catalog verification failures and invalid output. When a replacement is
+needed, it directs maintainers to allow a free model/provider in OpenRouter and
+update the repository variable `RELEASE_NOTES_MODEL` before starting a new run.
+
 The JSON contains Chinese, English, Japanese and Korean prose with matching
 section/item IDs and commit provenance. Each version highlights only 3–5 important
 changes (fewer when appropriate), with one short sentence per item. The model cites

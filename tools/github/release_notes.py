@@ -9,10 +9,13 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import time
+import urllib.error
 import urllib.request
 import zipfile
 
 from release import ROOT, api, context, read, require, write
+import release_notes_provider as provider
 
 NAME = "release-notes.json"
 LANGUAGES = ("zh-CN", "en-US", "ja-JP", "ko-KR")
@@ -143,6 +146,7 @@ def generate(ctx, output, root=ROOT):
     changes = evidence(sha, ctx["commit"], root)
     ids = [r["commit"] for r in changes]
     reviewed = root / "docs/releases" / (ctx["version"] + ".json")
+    started, generation_failure = time.monotonic(), None
     if reviewed.exists():
         result = read(reviewed)
         require(result["previousTag"] == tag and result["previousCommit"] == sha, "Reviewed notes use a different baseline")
@@ -154,12 +158,14 @@ def generate(ctx, output, root=ROOT):
                 require(change["files"] and all(f.startswith("docs/releases/") for f in change["files"]), "Reviewed notes omit code changes")
                 result["omitted"].append({"commit": change["commit"], "reason": "maintenance"})
     else:
+        provider.log_event("started", commit_count=len(changes))
         try:
             result = model_notes(ctx, tag, changes)
             require(set(result) == {"locales", "sources", "omitted"}, "Invalid model result structure")
             require(all(sum(len(s["items"]) for s in c["sections"]) <= 5 for c in result["locales"].values()),
                     "Generated notes must contain at most five highlights")
-        except Exception:
+        except Exception as error:
+            generation_failure = error
             result = None
     record = {"schema": 1, "version": ctx["version"], "sourceCommit": ctx["commit"], "runId": ctx["runId"],
               "repository": ctx["repository"], "channel": "stable",
@@ -169,11 +175,14 @@ def generate(ctx, output, root=ROOT):
         record["status"] = "unavailable"
     try:
         validate(record, ctx, ids)
-    except Exception:
+    except Exception as error:
         if reviewed.exists():
             raise
+        generation_failure = error
         record.update(status="unavailable", locales={}, sources=[], omitted=[])
     write(output, validate(record, ctx, ids))
+    if not reviewed.exists():
+        provider.report_result(record, time.monotonic() - started, generation_failure)
     return record
 
 
@@ -189,16 +198,19 @@ def model_integer_setting(name, default, maximum):
 
 def model_notes(ctx, tag, changes):
     key, model = os.environ.get("RELEASE_NOTES_API_KEY"), os.environ.get("RELEASE_NOTES_MODEL")
-    endpoint = os.environ.get("RELEASE_NOTES_API_URL", "").strip()
-    secret_name = os.environ.get("RELEASE_NOTES_API_KEY_SECRET", "").strip()
-    require(endpoint or secret_name in ("", "RELEASE_NOTES_API_KEY"), "Set an explicit endpoint for the selected API key Secret")
-    endpoint = endpoint or "https://api.openai.com/v1/chat/completions"
-    from urllib.parse import urlsplit
-    url = urlsplit(endpoint)
-    require(key and model, "Configure RELEASE_NOTES_API_KEY/MODEL or commit reviewed docs/releases/<version>.json")
-    require(url.scheme == "https" and url.hostname and not (url.username or url.password or url.query or url.fragment), "Invalid model endpoint")
-    timeout = model_integer_setting("RELEASE_NOTES_TIMEOUT_SECONDS", 300, 600)
-    max_tokens = model_integer_setting("RELEASE_NOTES_MAX_TOKENS", 32768, 131072)
+    try:
+        endpoint = os.environ.get("RELEASE_NOTES_API_URL", "").strip()
+        secret_name = os.environ.get("RELEASE_NOTES_API_KEY_SECRET", "").strip()
+        require(endpoint or secret_name in ("", "RELEASE_NOTES_API_KEY"), "Set an explicit endpoint for the selected API key Secret")
+        endpoint = endpoint or "https://api.openai.com/v1/chat/completions"
+        from urllib.parse import urlsplit
+        url = urlsplit(endpoint)
+        require(key and model, "Configure RELEASE_NOTES_API_KEY/MODEL or commit reviewed docs/releases/<version>.json")
+        require(url.scheme == "https" and url.hostname and not (url.username or url.password or url.query or url.fragment), "Invalid model endpoint")
+        timeout = model_integer_setting("RELEASE_NOTES_TIMEOUT_SECONDS", 300, 600)
+        max_tokens = model_integer_setting("RELEASE_NOTES_MAX_TOKENS", 32768, 131072)
+    except ValueError:
+        raise provider.ModelUnavailable("configuration") from None
     aliases = {f"c{i+1}": change["commit"] for i, change in enumerate(changes)}
     compact = [{"commit": f"c{i+1}", "title": change["message"].splitlines()[0][:500]}
                for i, change in enumerate(changes)]
@@ -211,20 +223,31 @@ def model_notes(ctx, tag, changes):
     raw = re.sub(r"https?://[^\s\"<>]+", "[URL]", raw)
     body = {"model": model, "max_tokens": max_tokens, "messages": [{"role": "system", "content": PROMPT}, {"role": "user", "content": raw}],
             "response_format": {"type": "json_object"}}
+    if provider.is_openrouter(endpoint):
+        body["provider"] = {"max_price": {"prompt": 0, "completion": 0, "request": 0}}
     request = urllib.request.Request(endpoint, data=json.dumps(body).encode(),
               headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, *args, **kwargs):
             return None
+    opener = urllib.request.build_opener(NoRedirect)
+    provider.ensure_free_openrouter(model, endpoint, opener)
+    provider.log_event("request", provider="openrouter" if provider.is_openrouter(endpoint) else "configured-service",
+                       timeout_seconds=timeout, max_tokens=max_tokens)
     try:
-        with urllib.request.build_opener(NoRedirect).open(request, timeout=timeout) as response:
+        with opener.open(request, timeout=timeout) as response:
             reply = json.loads(response.read(500001))
+        provider.log_event("response", http_status=200)
         choice = reply["choices"][0]
         require(choice["finish_reason"] == "stop", "Model response incomplete")
         result = json.loads(choice["message"]["content"])
         require(key not in json.dumps(result), "Model output contained a credential")
+    except urllib.error.HTTPError as error:
+        raise provider.classify_http(error) from None
+    except (OSError, urllib.error.URLError):
+        raise provider.ModelUnavailable("transport_error") from None
     except Exception:
-        raise ValueError("Release-note generation failed; retry the notes job or supply reviewed notes") from None
+        raise provider.ModelUnavailable("invalid_output") from None
     require(set(result) == {"locales", "sources"}, "Invalid model result structure")
     for source in result["sources"]:
         source["commits"] = [aliases[value] for value in source["commits"]]
