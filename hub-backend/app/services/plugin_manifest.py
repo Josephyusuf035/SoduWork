@@ -488,6 +488,18 @@ def normalize(manifest: dict, workflow: dict | None = None) -> tuple[dict, dict,
         if node_type not in NODE_TYPES:
             raise ValueError(f"节点 {node_key} 的类型不受支持：{node_type}")
         config = dict(item.get("config") or {})
+        for rework_field in ("onFailure", "onReject"):
+            if rework_field in config:
+                policy = config[rework_field]
+                if not isinstance(policy, dict):
+                    raise ValueError(
+                        f"节点 {node_key} 的 {rework_field} 必须是对象，"
+                        f"正确写法 {{\"retryFrom\": \"<节点key>\", \"maxRounds\": N}}")
+                retry_from = policy.get("retryFrom")
+                if not isinstance(retry_from, str) or not retry_from.strip():
+                    raise ValueError(
+                        f"节点 {node_key} 的 {rework_field}.retryFrom 必须是非空字符串，"
+                        f"正确写法 {{\"retryFrom\": \"<节点key>\", \"maxRounds\": N}}")
         if node_type in ("ai", "ai_review") and not _text(config.get("prompt"), 12000):
             raise ValueError(f"AI 节点 {node_key} 缺少 prompt")
         if node_type in ("ai", "ai_review"):
