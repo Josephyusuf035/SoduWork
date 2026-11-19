@@ -118,3 +118,10 @@ test('participant tracking copies never masquerade as assigned todos', () => {
   assert.deepEqual(R.owner({...shared, assigneeName: 'Colleague'}), {kind: 'person', name: 'Colleague'});
   assert.deepEqual(R.owner({...shared, ai: {name: 'Pi'}}), {kind: 'agent', name: 'Pi'});
 });
+
+test('native Markdown attachment preview uses the shared CJK dialect', () => {
+  const html = attachmentFiles.renderMarkdownPreview(
+    'note.md', Buffer.from('**注意：**先登录，工期 3~5 天。', 'utf8'));
+  assert.match(html, /<strong>注意：<\/strong>先登录，工期 3~5 天/);
+  assert.doesNotMatch(html, /<del>/);
+});

@@ -80,3 +80,55 @@ test('literal tildes coexist with explicit strikethrough and other Markdown synt
   assert.match(markdown.rich('| 范围 |\n| --- |\n| 3~5 与 7~14 |'), /<table>[\s\S]*<td>3~5 与 7~14<\/td>/);
   assert.match(markdown.rich('[3~5](https://example.test/~user) 与 7~14'), /<a href="https:\/\/example.test\/~user">3~5<\/a> 与 7~14/);
 });
+
+test('full-width punctuation inside bold renders in completed, cached and streaming replies', () => {
+  const view = setup();
+  const source = '**注意：**这里需要先登录';
+  const expected = '<div class="nmd"><p><strong>注意：</strong>这里需要先登录</p>\n</div>';
+  assert.equal(view.markdown.rich(source), expected);
+  assert.equal(view.markdown.rich(source), expected);
+  for (const [prefix, html] of [
+    ['**注意：**', '<strong>注意：</strong>'],
+    ['**注意：**这里', '<strong>注意：</strong>这里'],
+    [source, '<strong>注意：</strong>这里需要先登录'],
+  ]) {
+    view.advance(400);
+    assert.equal(view.render(prefix), '<div class="nmd"><p>' + html + '</p>\n</div>');
+  }
+  view.markdown.reset();
+  assert.equal(view.markdown.rich(source), expected);
+});
+
+test('the first CJK-punctuation delimiter closes bold instead of nesting later bolds', () => {
+  const { markdown } = setup();
+  for (const [source, expected] of [
+    ['**注意：**这里需要先登录', '<strong>注意：</strong>这里需要先登录'],
+    ['**步骤一：**打开设置', '<strong>步骤一：</strong>打开设置'],
+    ['**（注）**以下为草稿', '<strong>（注）</strong>以下为草稿'],
+    ['**注意：**这里**普通**内容', '<strong>注意：</strong>这里<strong>普通</strong>内容'],
+    ['**注意：**先登录，**步骤一：**打开设置',
+      '<strong>注意：</strong>先登录，<strong>步骤一：</strong>打开设置'],
+  ]) assert.equal(markdown.rich(source), '<div class="nmd"><p>' + expected + '</p>\n</div>');
+  assert.equal(markdown.rich('1. **准备：**安装 Node'),
+    '<div class="nmd"><ol>\n<li><strong>准备：</strong>安装 Node</li>\n</ol>\n</div>');
+});
+
+test('the CJK bold dialect leaves code, escapes, link destinations and English emphasis alone', () => {
+  const { markdown } = setup();
+  assert.equal(markdown.rich('~~~text\n**注意：**代码块\n~~~'),
+    '<div class="nmd"><pre><code class="language-text">**注意：**代码块\n</code></pre>\n</div>');
+  for (const [source, expected] of [
+    ['`**注意：**不是加粗`', '<code>**注意：**不是加粗</code>'],
+    [String.raw`\*\*注意：\*\*这里`, '**注意：**这里'],
+    ['**注意：[x](https://example.test/a**b)**：后文',
+      '<strong>注意：<a href="https://example.test/a**b">x</a></strong>：后文'],
+    ['[**注意：**链接](https://example.test)',
+      '<a href="https://example.test"><strong>注意：</strong>链接</a>'],
+    ['**结论**：营收增长', '<strong>结论</strong>：营收增长'],
+    ['**Note:** read this', '<strong>Note:</strong> read this'],
+    ['**Note:**read this', '**Note:**read this'],
+    ['***全部***', '<em><strong>全部</strong></em>'],
+    ['*斜体* 和 _下划线_', '<em>斜体</em> 和 <em>下划线</em>'],
+    ['** 不是加粗 **', '** 不是加粗 **'],
+  ]) assert.equal(markdown.rich(source), '<div class="nmd"><p>' + expected + '</p>\n</div>');
+});
