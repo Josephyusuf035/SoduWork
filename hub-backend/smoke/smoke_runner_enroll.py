@@ -107,6 +107,10 @@ async def main():
     # Avoid loopback URLs in remote installation commands.
     got = runner_enroll.hub_url("", "http://127.0.0.1:9080")
     chk("② 有局域网地址时替换管理端环回地址", got == "http://192.0.2.10:9080", got)
+    got_source = runner_enroll.hub_url("", "http://127.0.0.1:18989")
+    chk("② 环回地址保留源码模式默认端口", got_source == "http://192.0.2.10:18989", got_source)
+    got_custom = runner_enroll.hub_url("", "http://localhost:28989")
+    chk("② 环回地址保留自定义端口", got_custom == "http://192.0.2.10:28989", got_custom)
     chk("② 显式指定优先", runner_enroll.hub_url("http://192.0.2.3:9080", "http://127.0.0.1:9080")
         == "http://192.0.2.3:9080")
     chk("② 管理端地址像样就用它",

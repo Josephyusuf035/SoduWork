@@ -231,7 +231,7 @@ def runtime_environment(state: Path, config: dict, password: str, host: str, por
         "DATABASE_URL": "sqlite+aiosqlite:///" + (state / "soduwork.db").as_posix(),
         "SODUWORK_ENV": "development", "DB_MIGRATION_MODE": "auto",
         "ADMIN_USER": config["adminUser"], "ADMIN_PASS": password,
-        "AUTH_SECRET": config["authSecret"], "HUB_PUBLIC_URL": base,
+        "AUTH_SECRET": config["authSecret"], "HUB_PUBLIC_URL": base, "PORT": str(port),
         "CORS_ORIGINS": base + ",null", "DEVICE_AUTH_COMPAT": "false",
         "SODUWORK_DATA_ROOT": str(state / "runtime"),
         "LIBRARY_STORAGE_DIR": str(state / "library"), "LIBRARY_STORAGE_BACKEND": "local",

@@ -76,6 +76,7 @@ def hub_url(prefer: str = "", request_base: str = "") -> str:
     """Choose the Hub URL from an explicit override, the current non-loopback administration URL,
     then the local LAN address.
     """
+    detected_port = None
     for candidate in (prefer, request_base):
         url = str(candidate or "").strip().rstrip("/")
         if not url:
@@ -85,7 +86,10 @@ def hub_url(prefer: str = "", request_base: str = "") -> str:
         elif "://" not in url:
             url = "http://" + url
         url = validate_hub_url(url)
-        host = urlsplit(url).hostname
+        parsed = urlsplit(url)
+        if parsed.port:
+            detected_port = str(parsed.port)
+        host = parsed.hostname
         local = host in _LOOPBACK
         try:
             address = ipaddress.ip_address(host)
@@ -94,8 +98,15 @@ def hub_url(prefer: str = "", request_base: str = "") -> str:
             pass
         if not local:
             return url
+    if not detected_port and os.environ.get("HUB_PUBLIC_URL"):
+        try:
+            pub_parsed = urlsplit(os.environ["HUB_PUBLIC_URL"])
+            if pub_parsed.port:
+                detected_port = str(pub_parsed.port)
+        except Exception:
+            pass
     ip = _lan_ip()
-    port = os.environ.get("PORT") or "9080"
+    port = detected_port or os.environ.get("PORT") or "9080"
     return validate_hub_url("http://%s:%s" % (ip or "127.0.0.1", port))
 
 
