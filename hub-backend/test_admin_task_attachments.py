@@ -13,7 +13,7 @@ from sqlalchemy import select
 from app import models
 from app.api import admin
 from app.deps import current_user
-from app.services import storage
+from app.services import resource_access, storage
 import test_unified_requirements as unified
 
 
@@ -61,6 +61,12 @@ class AdminTaskAttachmentTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn("/None/", row.storage_key)
         self.assertEqual(storage.get(rows[first["id"]].storage_key, "local"), b"first version")
         self.assertEqual(storage.get(rows[second["id"]].storage_key, "local"), b"second version, longer")
+        # Both versions download intact through the public attachment route.
+        for uploaded, content in ((first, b"first version"), (second, b"second version, longer")):
+            response = await self.http.get(resource_access.attachment_url(uploaded["id"]))
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.content, content)
+            self.assertEqual(response.headers["content-length"], str(len(content)))
 
 
 if __name__ == "__main__":
