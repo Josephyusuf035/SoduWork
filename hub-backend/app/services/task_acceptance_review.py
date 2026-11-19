@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from .. import automation_models as am, models
 from ..schemas import attachment_to_api
-from . import approval_routing, delivery_bundle, gate_contract, release_control, task_access
+from . import acceptance_evidence_refs, approval_routing, delivery_bundle, gate_contract, release_control, task_access
 
 _locks = weakref.WeakValueDictionary()
 
@@ -110,6 +110,7 @@ async def context(session, client, tid):
             "approvalId": request.id if request else "direct:" + task.id,
             "artifactVersionId": artifact.id, "requirementVersion": task.requirement_version,
             "criteria": _criteria(task, request), "evidence": gate.get("evidence") or [],
+            "evidenceRefOptions": acceptance_evidence_refs.options(artifact, gate.get("evidence") or []),
             "readiness": gate.get("readiness") or {},
             "artifact": release_control.artifact_api(artifact),
             "attachments": [attachment_to_api(row) for row in selected],
@@ -136,7 +137,7 @@ def validate_report(body, criteria):
     labels = {item["id"]: item for item in criteria}
     labels.update({item["label"]: item for item in criteria})
     seen, normalized = set(), []
-    for check in checks:
+    for index, check in enumerate(checks):
         if not isinstance(check, dict):
             raise HTTPException(422, "验收报告检查项格式不正确")
         item = labels.get(str(check.get("criterion") or ""))
@@ -147,7 +148,9 @@ def validate_report(body, criteria):
             raise HTTPException(422, "每项验收结论都必须附上实际核验依据")
         seen.add(item["id"])
         normalized.append({"criterion": item["id"], "label": item["label"],
-                           "result": check["result"], "evidence": evidence.strip()})
+                           "result": check["result"], "evidence": evidence.strip(),
+                           **({"evidenceRefs": acceptance_evidence_refs.normalize(check["evidenceRefs"], index)}
+                              if "evidenceRefs" in check else {})})
     failed = any(item["result"] == "fail" for item in normalized)
     if (verdict == "approve") == failed:
         raise HTTPException(422, "验收总论与逐项核验结果不一致")
@@ -199,6 +202,10 @@ async def _apply(session, client, tid, body):
                     "closed": request.status == "approved" and bool(task.reviewed_at) and task.status == "done"}
         if request.status != "pending":
             raise HTTPException(409, "这项验收已由其他人处理，请刷新")
+    if any(check.get("evidenceRefs") for check in report["checks"]):
+        gate = await _packet(session, task, artifact, request)
+        acceptance_evidence_refs.verify(
+            report, acceptance_evidence_refs.options(artifact, gate.get("evidence") or []))
     if "requirementTimelineRevision" in body:
         from . import requirement_timeline
         await requirement_timeline.verify(session, client, task, body["requirementTimelineRevision"])
