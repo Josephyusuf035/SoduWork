@@ -164,6 +164,17 @@ test('queued automatic review rejects changed reference choices or a Hub that no
   }
 });
 
+test('queued automatic review accepts equivalent reference choices in a different list or object-field order', async t => {
+  const refs = [{ kind: 'file', ref: 'file-a', fingerprint: 'a'.repeat(64) },
+    { kind: 'text', ref: 'artifact:v1:text', fingerprint: 'b'.repeat(64) }];
+  const f = fixture(t, { evidenceRefOptions: refs });
+  const turn = await prepare({ identity: {}, taskId: 't', requested: { acceptanceMode: 'auto' },
+    runtime: f.runtime, request: f.request });
+  f.context.evidenceRefOptions = refs.toReversed().map(ref => ({ fingerprint: ref.fingerprint, ref: ref.ref, kind: ref.kind }));
+  await turn.beforeTurn();
+  assert.ok(f.calls.every(call => !call.body));
+});
+
 test('停止、失败、缺报告和标准不足都不自动批准', async t => {
   const f = fixture(t);
   const turn = await prepare({ identity: {}, taskId: 't', requested: { acceptanceMode: 'auto' },
