@@ -1142,6 +1142,8 @@ async def run_milestone(
     from ..services import ai_exec
     from ..services import task_events as ev
     t = await _my_task(session, client, tid)
+    if t.status in ("done", "cancel"):
+        raise HTTPException(status_code=409, detail="已完成或已取消的需求不能再执行里程碑")
     ref = await _dispatch_ref(session, tid)
     if not ref:
         raise HTTPException(status_code=409, detail="这条需求还没交给 AI，先让它出个计划")
@@ -1235,7 +1237,7 @@ async def milestone_verdict(
     # False acceptance can also close unresolved source issues in a batch.
     # Use rounds to establish that an execution result exists for review.
     # Use skipped to omit a milestone; acceptance is not a substitute for skipping.
-    if (m.rounds or 0) <= 0 and m.status == "planned":
+    if (m.rounds or 0) <= 0:
         raise HTTPException(
             status_code=409,
             detail=f"「{m.title}」还没跑过，没有结果可验。要先跑这一条；不做就标「不做」，别用验收通过跳过它")

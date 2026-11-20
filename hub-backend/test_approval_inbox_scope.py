@@ -12,6 +12,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 
 import httpx
 from fastapi import FastAPI, Request
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app import automation_models as am, models
@@ -160,6 +161,77 @@ class ApprovalInboxScopeTests(unittest.IsolatedAsyncioTestCase):
         history = await self.inbox(query="?view=done&limit=1")
         self.assertEqual(history["items"], [])
         self.assertEqual(history["pendingTasks"], normal["pendingTasks"])
+
+    async def test_revoke_forbidden_matches_decision_without_mutating_approval(self):
+        request_id, task_id = await self.seed("revoke-forbidden")
+        pending_id, _ = await self.seed("decision-forbidden")
+        async with self.sessions() as session:
+            (await session.get(am.ApprovalRequest, request_id)).status = "approved"
+            await session.commit()
+        headers = {"X-Test-Identity": "outside"}
+        with patch("app.realtime.hub.publish", new_callable=AsyncMock) as publish:
+            response = await self.http.post(f"/api/v1/approvals/{request_id}/revoke",
+                headers=headers, json={"note": "Fixture revocation"})
+            decision = await self.http.post(f"/api/v1/approvals/{pending_id}/decision",
+                headers=headers, json={"decision": "approve"})
+        self.assertEqual(response.status_code, 403, response.text)
+        self.assertEqual(decision.status_code, 403, decision.text)
+        self.assertEqual(response.json(), decision.json())
+        publish.assert_not_awaited()
+        async with self.sessions() as session:
+            request = await session.get(am.ApprovalRequest, request_id)
+            self.assertEqual(request.status, "approved")
+            self.assertIsNone(request.resolved_at)
+            self.assertEqual((await session.execute(select(models.TaskEvent).where(
+                models.TaskEvent.task_id == task_id))).scalars().all(), [])
+
+    async def test_revoke_conflicts_and_missing_request_keep_existing_statuses(self):
+        for name, status, note, merged in (("no-note", "approved", "", False),
+                                            ("pending", "pending", "Fixture", False),
+                                            ("merged", "approved", "Fixture", True)):
+            with self.subTest(name=name):
+                request_id, task_id = await self.seed("revoke-" + name)
+                async with self.sessions() as session:
+                    request = await session.get(am.ApprovalRequest, request_id)
+                    request.status = status
+                    if merged:
+                        artifact = await session.get(am.ArtifactVersion, request.artifact_version_id)
+                        artifact.kind, artifact.state = "code", "merged"
+                    await session.commit()
+                response = await self.http.post(f"/api/v1/approvals/{request_id}/revoke", json={"note": note})
+                self.assertEqual(response.status_code, 409, response.text)
+                async with self.sessions() as session:
+                    self.assertEqual((await session.get(am.ApprovalRequest, request_id)).status, status)
+                    self.assertEqual((await session.execute(select(models.TaskEvent).where(
+                        models.TaskEvent.task_id == task_id))).scalars().all(), [])
+        response = await self.http.post("/api/v1/approvals/missing/revoke", json={"note": "Fixture"})
+        self.assertEqual(response.status_code, 404, response.text)
+
+    async def test_revoke_authorized_request_still_preserves_history(self):
+        request_id, task_id = await self.seed("revoke-allowed")
+        async with self.sessions() as session:
+            request = await session.get(am.ApprovalRequest, request_id)
+            request.status = "approved"
+            (await session.get(am.ArtifactVersion, request.artifact_version_id)).state = "baselined"
+            session.add(am.ApprovalDecision(request_id=request_id, user_id="alice", user_name="alice",
+                                           decision="approve", note="Original decision"))
+            await session.commit()
+        with patch("app.realtime.hub.publish", new_callable=AsyncMock):
+            response = await self.http.post(f"/api/v1/approvals/{request_id}/revoke",
+                                            json={"note": "Fixture revocation"})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(response.json()["ok"])
+        async with self.sessions() as session:
+            request = await session.get(am.ApprovalRequest, request_id)
+            self.assertEqual(request.status, "revoked")
+            self.assertIsNotNone(request.resolved_at)
+            self.assertEqual((await session.get(am.ArtifactVersion, request.artifact_version_id)).state, "candidate")
+            decisions = (await session.execute(select(am.ApprovalDecision).where(
+                am.ApprovalDecision.request_id == request_id))).scalars().all()
+            self.assertEqual([row.note for row in decisions], ["Original decision"])
+            events = (await session.execute(select(models.TaskEvent).where(
+                models.TaskEvent.task_id == task_id, models.TaskEvent.kind == "release.revoked"))).scalars().all()
+            self.assertEqual(len(events), 1)
 
     async def test_references_respect_assignment_and_separation_and_ignore_others_waiting(self):
         await self.seed("mine")
