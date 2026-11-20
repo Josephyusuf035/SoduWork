@@ -314,3 +314,33 @@ test('download labels and errors omit URL credentials and query secrets', () => 
   const label = errorLabel(error);
   assert.doesNotMatch(label, /fixture-user|fixture-password|fixture-token|fixture-fragment|token=/);
 });
+
+test('bounded 206 chunks are resumed until the complete archive is available', async t => {
+  const content = 'complete-range-fixture', target = directory(t);
+  fs.writeFileSync(target + '.part', content.slice(0, 3));
+  const source = await origin(t, (request, response) => {
+    assert.equal(fs.existsSync(target), false, 'an incomplete range must not be published');
+    const start = Number(request.headers.range.match(/^bytes=(\d+)-$/)[1]);
+    const end = Math.min(start + 4, content.length - 1);
+    response.writeHead(206, { 'Content-Range': `bytes ${start}-${end}/${content.length}` });
+    response.end(content.slice(start, end + 1));
+  });
+  await downloadFile(source.url, target, options({}, { resume: true }));
+  assert.ok(source.received.length > 1);
+  assert.equal(fs.readFileSync(target, 'utf8'), content);
+  assert.equal(fs.existsSync(target + '.part'), false);
+});
+
+test('a 206 body length mismatch keeps the verified prefix and never replaces an existing runtime', async t => {
+  for (const body of ['de', 'defgh']) {
+    const target = directory(t);
+    fs.writeFileSync(target, 'existing-runtime');
+    fs.writeFileSync(target + '.part', 'abc');
+    const source = await origin(t, (_request, response) => {
+      response.writeHead(206, { 'Content-Range': 'bytes 3-5/6' }); response.end(body);
+    });
+    await assert.rejects(downloadFile(source.url, target, options({}, { resume: true })), /byte range/);
+    assert.equal(fs.readFileSync(target, 'utf8'), 'existing-runtime');
+    assert.equal(fs.readFileSync(target + '.part', 'utf8'), 'abc');
+  }
+});
