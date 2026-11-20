@@ -133,6 +133,31 @@ async def _assert_user_in_scope(session: AsyncSession, user: User, target: User)
         raise HTTPException(status_code=403, detail="无权管理该用户")
 
 
+async def _validate_user_references(session: AsyncSession, org_id: str | None,
+                                    role_id: str | None, domain_ids) -> list[str]:
+    """Reject unknown org/role/domain ids instead of persisting dangling references.
+
+    ``positions`` already goes through ``work_catalog.validate_profession_ids``; the
+    other three references were stored verbatim, so a typo produced a user with no
+    effective role or with a domain that can never be resolved. Administrators should
+    get a clear 400 at write time instead.
+    """
+    if org_id and await session.get(models.OrgUnit, org_id) is None:
+        raise HTTPException(status_code=400, detail="所属部门不存在")
+    if role_id and await session.get(Role, role_id) is None:
+        raise HTTPException(status_code=400, detail="所选角色不存在")
+    wanted = list(dict.fromkeys(
+        str(value or "").strip() for value in (domain_ids or []) if str(value or "").strip()))
+    if wanted:
+        known = set((await session.scalars(
+            select(models.Domain.id).where(models.Domain.id.in_(wanted)))).all())
+        missing = [value for value in wanted if value not in known]
+        if missing:
+            raise HTTPException(status_code=400,
+                                detail="所选业务域不存在：" + "、".join(missing[:3]))
+    return wanted
+
+
 async def _assert_client_in_scope(session: AsyncSession, user: User, client: Client):
     if user.is_super:
         return
@@ -233,6 +258,11 @@ async def create_role(body: RoleCreate,
 async def update_role(rid: str, body: RoleUpdate,
                       user: User = Depends(require_perm("role.manage")),
                       session: AsyncSession = Depends(get_session)):
+    target = await session.get(Role, rid)
+    if target is None:
+        raise HTTPException(status_code=404, detail="角色不存在")
+    if target.is_system and body.name is not None and body.name != target.name:
+        raise HTTPException(status_code=400, detail="系统内置角色不可改名")
     r = await rbac.update_role(session, rid, body.name, body.permissions)
     if r is None:
         raise HTTPException(status_code=404, detail="角色不存在")
@@ -273,6 +303,7 @@ async def create_user(
     if not body.orgId:
         raise HTTPException(status_code=400, detail="请为用户指定所属部门")
     await _assert_org_in_scope(session, user, body.orgId)
+    domains = await _validate_user_references(session, body.orgId, body.roleId, body.domains)
     if await rbac.get_user_by_username(session, body.username):
         raise HTTPException(status_code=400, detail="用户名已存在")
     try:
@@ -282,7 +313,7 @@ async def create_user(
         raise HTTPException(status_code=400, detail=str(error)) from error
     created = await rbac.create_user(
         session, body.username, body.password, body.displayName,
-        body.orgId, body.roleId, position_ids, body.domains,
+        body.orgId, body.roleId, position_ids, domains,
         token_quota=body.tokenQuota.model_dump() if body.tokenQuota is not None else None)
     await audit.log(session, user, "user.create", "user", created.get("id"), created.get("displayName") or body.username,
                     {"orgId": body.orgId, "roleId": body.roleId})
@@ -306,6 +337,14 @@ async def update_user(
         raise HTTPException(status_code=400, detail="不能停用超级管理员")
     was_active = bool(target.is_active)
     patch = body.model_dump(exclude_none=True)
+    if "roleId" in body.model_fields_set or body.domains is not None:
+        domains = await _validate_user_references(
+            session,
+            body.orgId if body.orgId is not None else target.org_id,
+            body.roleId if "roleId" in body.model_fields_set else target.role_id,
+            body.domains if body.domains is not None else target.domains)
+        if body.domains is not None:
+            patch["domains"] = domains
     # Explicit null clears the role; omitting the field preserves it.
     if "roleId" in body.model_fields_set:
         patch["roleId"] = body.roleId
