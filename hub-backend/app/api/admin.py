@@ -728,6 +728,20 @@ async def _assert_task_in_scope(session: AsyncSession, user: User, tid: str) -> 
 # Direct assignments use /users/{uid}/tasks with ordinary tasks and completion receipts.
 
 
+def _daily_report_date(value: object = None) -> str:
+    """Validate before report generation, retaining default days and accepted ISO forms."""
+    from ..services import daily_report as dr
+
+    if value is not None and not isinstance(value, str):
+        raise HTTPException(400, "date must be a valid date (YYYY-MM-DD)")
+    day = (value or "").strip() or dr.today_str()
+    try:
+        dr.period_info("daily", day)
+    except ValueError as error:
+        raise HTTPException(400, "date must be a valid date (YYYY-MM-DD)") from error
+    return day
+
+
 @router.get("/daily-reports")
 async def list_daily_reports(
     date: str = "", user_id: str = "",
@@ -737,8 +751,8 @@ async def list_daily_reports(
     """Return the current team's overview, with drill-down into direct subteams and individual
     facts.
     """
-    from ..services import daily_report as dr, team_daily_report as tdr
-    day = (date or "").strip() or dr.today_str()
+    from ..services import team_daily_report as tdr
+    day = _daily_report_date(date)
     try:
         data = await tdr.overview(session, user, day, org_id)
     except PermissionError as error:
@@ -761,7 +775,7 @@ async def generate_daily_reports(
     desktop notifications.
     """
     from ..services import daily_report as dr, team_daily_report as tdr
-    day = (body.get("date") or "").strip() or dr.today_str()
+    day = _daily_report_date(body.get("date"))
     uid = (body.get("userId") or "").strip()
 
     scope = await rbac.scope_org_ids(session, user)

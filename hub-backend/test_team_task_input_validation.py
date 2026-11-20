@@ -155,6 +155,20 @@ class TeamTaskInputValidationTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(response.json()["detail"], "无团队管理权限")
         await self.assert_no_task_writes()
 
+    async def test_invalid_recurrence_rejected_before_assignment_writes(self):
+        for value in ("every-blue-moon", "DAILY", " ", {}, [], 0, 1, True, False):
+            with self.subTest(value=value):
+                response = await self.request({**ASSIGNMENT, "title": "Synthetic task", "recur": value})
+                self.assertEqual(response.status_code, 400, response.text)
+                self.assertIn("recur", response.json()["detail"])
+        await self.assert_no_task_writes()
+
+    async def test_member_assignment_keeps_valid_recurrence(self):
+        for value in ("daily", "weekly", "monthly", None, ""):
+            response = await self.request({**ASSIGNMENT, "title": "Synthetic task", "recur": value})
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()["tasks"][0]["recur"], value or None)
+
 
 if __name__ == "__main__":
     unittest.main()

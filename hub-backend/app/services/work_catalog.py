@@ -493,7 +493,10 @@ async def save_profession(
     """Save a professional profile without granting platform permissions."""
     from uuid import uuid4
 
-    name = str(body.get("name", current.name if current else "") or "").strip()[:48]
+    raw_name = body.get("name", current.name if current else "")
+    if raw_name is not None and not isinstance(raw_name, str):
+        raise ValueError("name must be a string")
+    name = (raw_name or "").strip()[:48]
     if not name:
         raise ValueError("请填写职业名称")
     query = select(models.Position).where(

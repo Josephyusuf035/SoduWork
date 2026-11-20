@@ -2,8 +2,34 @@
 import asyncio
 from tests.test_library import LibraryHttpTestCase
 
+from sqlalchemy import func, select
+from app.library_models import LibraryFolder
+
 
 class LibraryNameTests(LibraryHttpTestCase):
+    async def test_folder_creation_rejects_non_string_names_without_writes(self):
+        for value in ({}, {"a": 1}, [], ["name"], 0, 1, 1.5, True, False):
+            with self.subTest(value=value):
+                reply = await self.request("POST", "/folders", json={"name": value})
+                self.assertEqual(reply.status_code, 400, reply.text)
+        async with self.sessions() as session:
+            self.assertEqual(await session.scalar(select(func.count()).select_from(LibraryFolder)), 0)
+        self.assertEqual(self.store.objects, {})
+
+    async def test_folder_default_names_cleanup_and_favorite_are_preserved(self):
+        for index, body in enumerate(({}, {"name": None}, {"name": ""}, {"name": " \t "})):
+            reply = await self.request("POST", "/folders", owner=f"default-{index}", json=body)
+            self.assertEqual(reply.status_code, 200, reply.text)
+            self.assertEqual(reply.json()["folder"]["name"], "新建文件夹")
+        folder = await self.create_folder(" path/中文 Docs\x00 ")
+        self.assertEqual(folder["name"], "中文 Docs")
+        reply = await self.request("PATCH", f'/folders/{folder["id"]}', json={"favorite": True})
+        self.assertEqual(reply.status_code, 200, reply.text)
+        self.assertEqual(reply.json()["folder"]["name"], "中文 Docs")
+        self.assertTrue(reply.json()["folder"]["favorite"])
+        reply = await self.request("PATCH", f'/folders/{folder["id"]}', json={"name": {"a": 1}})
+        self.assertEqual(reply.status_code, 400, reply.text)
+
     async def upload_named(self, filename, **kwargs):
         return await self.request("POST", "/items/upload",
             files={"file": (filename, b"original", "text/plain")}, **kwargs)

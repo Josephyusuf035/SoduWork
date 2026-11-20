@@ -76,6 +76,51 @@ function oldLengthBlocked(task) {
     blocked: 'String should have at most 120 characters' };
 }
 
+test('invalid recurrence stays recoverable and an explicit correction resumes the same PUT', async () => {
+  const task = { ...historicalTask('recur-recovery'), recur: 'every-blue-moon' };
+  const requests = [];
+  const store = fixture({ online: true, putTask: async (id, data) => {
+    requests.push({ id, data });
+    if (data.recur === 'every-blue-moon') {
+      throw Object.assign(new Error('recur must be daily, weekly, monthly, or null'), { status: 400 });
+    }
+    return { ...task, ...data, id };
+  }});
+  store._scheduleTaskFlush = () => {};
+  store._tasks = [task];
+  store._mergeTaskOperation({ id: task.id, kind: 'put', data: TaskSync.taskPayload(task) });
+  assert.equal(await store._flushTaskOps(), false);
+  const blocked = store._readTaskOps()[0];
+  assert.equal(blocked.blockedStatus, 400);
+  assert.equal(blocked.data.recur, 'every-blue-moon');
+  assert.equal(blocked.data.note, task.note);
+  await store._flushTaskOps();
+  assert.equal(requests.length, 1, 'invalid data must not enter an automatic retry loop');
+  task.recur = 'weekly';
+  store._captureTaskChanges();
+  assert.equal(await store._flushTaskOps(), true);
+  assert.equal(requests.length, 2);
+  assert.equal(requests[1].id, task.id);
+  assert.equal(requests[1].data.recur, 'weekly');
+  assert.equal(store._readTaskOps().length, 0);
+  assert.equal(store._shadow[task.id].title, task.title);
+  assert.equal(store._shadow[task.id].source, task.source);
+  assert.equal(store._shadow[task.id].note, task.note);
+});
+
+test('editing a historical task does not resend its unchanged invalid recurrence', () => {
+  const task = { ...historicalTask('recur-note-only'), recur: 'every-blue-moon' };
+  const store = fixture({ online: false });
+  store._scheduleTaskFlush = () => {};
+  store._shadow[task.id] = { ...task };
+  store._tasks = [{ ...task, note: 'Changed note' }];
+  store._captureTaskChanges();
+  const queued = store._readTaskOps();
+  assert.equal(queued.length, 1);
+  assert.equal(queued[0].kind, 'patch');
+  assert.deepEqual(JSON.parse(JSON.stringify(queued[0].data)), { note: 'Changed note' });
+});
+
 test('upgraded Store replays a historical blocked PUT with the same identity and complete text', async () => {
   const task = historicalTask('legacy-replay'), requests = [];
   const store = fixture({ online: true, putTask: async (id, data) => {

@@ -685,7 +685,10 @@ async def create_folder(body: dict = Body(default_factory=dict), client: Client 
 async def _create_folder(body, client, session):
     owner = _owner_key(client)
     selected_backend = _select_storage(body.get("storage") or body.get("backend"))
-    name = _safe_name(body.get("name"), "新建文件夹")[:160]
+    raw_name = body.get("name")
+    if raw_name is not None and not isinstance(raw_name, str):
+        raise HTTPException(400, "name must be a string")
+    name = _safe_name(raw_name, "新建文件夹")[:160]
     parent_id = str(body.get("parentId") or "").strip() or None
     selected_backend = await _destination_backend(session, owner, parent_id, selected_backend)
     await _ensure_storage(selected_backend)

@@ -101,6 +101,23 @@ def normalize_output_contract(t: "models.Task") -> bool:
     return True
 
 
+def _validate_recur(data: dict, *, replay_task: models.Task | None = None) -> None:
+    """Reject new invalid rules without coercing empty values or rewriting old rows.
+
+    Only an owned, locked PUT replay may retain the same stored legacy rule.
+    Missing-ID PUTs (including undo after deletion) must supply a valid rule;
+    they cannot be distinguished from newly created offline tasks.
+    """
+    if "recur" not in data:
+        return
+    value = data["recur"]
+    if value is None or (isinstance(value, str) and value in ("", "daily", "weekly", "monthly")):
+        return
+    if replay_task is not None and isinstance(value, str) and value == replay_task.recur:
+        return
+    raise HTTPException(400, "recur must be daily, weekly, monthly, or null")
+
+
 def apply_detail(t: "models.Task", data: dict) -> None:
     """Apply only supplied camelCase metadata fields to the task."""
     if data.get("priority"):
@@ -448,6 +465,7 @@ async def create_task(
 ) -> dict:
     from . import task_status, work_catalog
 
+    _validate_recur(data)
     data = await work_catalog.enrich_task_data(session, owner_id, data)
     status = str(data.get("status") or "todo")
     if status not in task_status.VALID:
@@ -538,7 +556,8 @@ async def put_local_task(session: AsyncSession, owner_id: str, tid: str, data: d
     if current is not None:
         if not task_access.is_owner(current, client) or current.origin != "local":
             return None
-        return await update_task(session, owner_id, tid, data, preserve_sync_text=True)
+        return await update_task(session, owner_id, tid, data,
+                                 preserve_sync_text=True, preserve_sync_recur=True)
     try:
         return await create_task(session, owner_id, data, origin="local", task_id=tid)
     except IntegrityError:  # Another window may have inserted this ID during concurrent PUT replay.
@@ -551,11 +570,13 @@ async def put_local_task(session: AsyncSession, owner_id: str, tid: str, data: d
             raise
         if not task_access.is_owner(current, client) or current.origin != "local":
             return None
-        return await update_task(session, owner_id, tid, data, preserve_sync_text=True)
+        return await update_task(session, owner_id, tid, data,
+                                 preserve_sync_text=True, preserve_sync_recur=True)
 
 
 async def update_task(session: AsyncSession, owner_id: str, tid: str, patch: dict,
-                      *, preserve_sync_text: bool = False) -> dict | None:
+                      *, preserve_sync_text: bool = False,
+                      preserve_sync_recur: bool = False) -> dict | None:
     from . import task_access
     await task_access.reserve_task_write(session, tid, owner_id)
     client = await session.get(models.Client, owner_id)
@@ -570,6 +591,8 @@ async def update_task(session: AsyncSession, owner_id: str, tid: str, patch: dic
         if candidate is None or client is None or not await task_requirements.can_read(session, client, candidate):
             return None
         return await task_requirements.update_shared(session, client, candidate, dict(patch or {}))
+    # Compare against the locked row, not the potentially stale PUT lookup.
+    _validate_recur(patch or {}, replay_task=t if preserve_sync_recur and t.origin == "local" else None)
     prev_status = t.status
     from . import requirement_timeline
     previous_definition = requirement_timeline.definition(t)
@@ -839,6 +862,8 @@ async def clear_done(session: AsyncSession, owner_id: str) -> dict:
 
 
 async def batch_update(session: AsyncSession, owner_id: str, ids: list[str], patch: dict) -> dict:
+    # Each task update commits separately; reject an invalid common patch first.
+    _validate_recur(patch)
     count = rejected = 0
     for tid in ids:
         result = await update_task(session, owner_id, tid, patch)
