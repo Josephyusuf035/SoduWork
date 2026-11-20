@@ -59,6 +59,27 @@ class ModelDiscoveryTests(unittest.TestCase):
         self.assertTrue(result["ok"], result["detail"])
         self.assertEqual(result["path"], "/v1/models")
 
+    def test_falls_back_when_root_returns_an_html_page_or_unusable_json(self):
+        for response in (FakeResponse(200, raw=b"<html>gateway UI</html>"),
+                         FakeResponse(200, {"message": "welcome"}),
+                         FakeResponse(200, {"data": []})):
+            with self.subTest(response=response.content):
+                responses = {BASE + "/models": response,
+                             BASE + "/v1/models": FakeResponse(200, {"data": [{"id": "model-a"}]})}
+                with patch.object(model_discovery.httpx, "AsyncClient", _client_factory(responses)):
+                    result = self.run_async(model_discovery.discover(BASE, "secret"))
+                self.assertTrue(result["ok"], result)
+                self.assertEqual(result["models"], ["model-a"])
+                self.assertEqual(result["path"], "/v1/models")
+
+    def test_last_endpoint_auth_failure_is_not_hidden_by_a_root_html_page(self):
+        responses = {BASE + "/models": FakeResponse(200, raw=b"<html>gateway UI</html>"),
+                     BASE + "/v1/models": FakeResponse(401)}
+        with patch.object(model_discovery.httpx, "AsyncClient", _client_factory(responses)):
+            result = self.run_async(model_discovery.discover(BASE, "bad"))
+        self.assertFalse(result["ok"])
+        self.assertIn("HTTP 401", result["detail"])
+
     def test_no_models_endpoint_is_a_soft_failure(self):
         responses = {BASE + "/models": FakeResponse(404), BASE + "/v1/models": FakeResponse(405)}
         with patch.object(model_discovery.httpx, "AsyncClient", _client_factory(responses)):
@@ -82,7 +103,8 @@ class ModelDiscoveryTests(unittest.TestCase):
         self.assertIn("ConnectError", result["detail"])
 
     def test_non_json_body_fails_soft(self):
-        responses = {BASE + "/models": FakeResponse(200, raw=b"<html>not json</html>")}
+        responses = {BASE + "/models": FakeResponse(200, raw=b"<html>not json</html>"),
+                     BASE + "/v1/models": FakeResponse(404)}
         with patch.object(model_discovery.httpx, "AsyncClient", _client_factory(responses)):
             result = self.run_async(model_discovery.discover(BASE, "secret"))
         self.assertFalse(result["ok"])

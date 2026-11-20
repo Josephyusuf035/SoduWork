@@ -68,6 +68,7 @@ async def discover(base: str, key: str, kind: str = "openai-compat") -> dict:
                                timeout=httpx.Timeout(TIMEOUT_SECONDS))
     try:
         last_status = ""
+        response_error = None
         for path in _paths(kind):
             try:
                 response = await client.get(base + path, headers=_headers(kind, key))
@@ -80,13 +81,17 @@ async def discover(base: str, key: str, kind: str = "openai-compat") -> dict:
             try:
                 payload = json.loads(response.content[:MAX_BYTES].decode("utf-8", "replace"))
             except (ValueError, UnicodeDecodeError):
-                return {"ok": False, "models": [], "path": path,
-                        "detail": "模型列表不是有效的 JSON 响应"}
+                response_error = {"ok": False, "models": [], "path": path,
+                                  "detail": "模型列表不是有效的 JSON 响应"}
+                continue
             names = _names(payload)
             if not names:
-                return {"ok": False, "models": [], "path": path,
-                        "detail": "服务返回了空模型列表"}
+                response_error = {"ok": False, "models": [], "path": path,
+                                  "detail": "服务返回了空模型列表"}
+                continue
             return {"ok": True, "models": names, "path": path, "detail": ""}
+        if response_error and last_status in ("", "HTTP 404", "HTTP 405"):
+            return response_error
         if last_status in ("HTTP 404", "HTTP 405"):
             return {"ok": False, "models": [],
                     "detail": "这个服务不提供模型列表接口，请手动添加模型标识"}
