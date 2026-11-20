@@ -282,9 +282,15 @@ async def _direct_truth(session: AsyncSession, task: models.Task,
     if artifact is not None and artifact.kind == "code":
         from . import deployments
         if not await deployments.delivery_complete(session, task):
-            blockers.append(_block("delivery_pending", "代码尚未交付到目标环境",
-                                   "代码提交不是终点；还需完成合并及项目配置的交付边界。",
-                                   "delivery"))
+            # #647: Distinguish between "needs deployment" and "deployment target not configured"
+            has_env_targets = await deployments.has_targets(session, task)
+            if not has_env_targets:
+                # No deployment targets configured - delivery boundary is at merge
+                pass  # Do not add blocker when no targets exist
+            else:
+                blockers.append(_block("delivery_pending", "代码尚未交付到目标环境",
+                                       "代码提交不是终点；还需完成合并及项目配置的交付边界。",
+                                       "delivery"))
     else:
         if not manifest.get("complete"):
             problems = list(manifest.get("problems") or [])

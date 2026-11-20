@@ -502,6 +502,16 @@ async def reroute_pending_for_project(session: AsyncSession, project_id: str,
             am.ApprovalAssignment.request_id == request.id
         ))
         rows = await ensure_assignments(session, tasks[request.task_id], request)
+        if len(rows) < request.required_count:
+            skipped += 1
+            session.add(models.TaskEvent(
+                task_id=request.task_id, kind="release.approval_unassignable",
+                detail={"requestId": request.id, "action": request.action,
+                        "required": request.required_count, "found": len(rows),
+                        "reason": "无法分配足够的审批人"},
+                actor=actor,
+            ))
+            continue
         assignments += len(rows)
         changed += 1
         session.add(models.TaskEvent(

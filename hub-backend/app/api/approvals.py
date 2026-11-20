@@ -490,6 +490,14 @@ async def decide(request_id: str, body: dict = Body(default_factory=dict),
             "text": f"{who}{verb}了「{task.title}」的{request.action}环节{suffix}",
         })
     if execution is not None:
+        if execution.get("ok") is False:
+            artifact = await session.get(am.ArtifactVersion, request.artifact_version_id)
+            if artifact is not None:
+                out["artifact"] = release_control.artifact_api(artifact)
+            raise HTTPException(
+                status_code=500,
+                detail=f"授权操作失败：{execution.get('error') or '未知错误'}"
+            )
         artifact = await session.get(am.ArtifactVersion, request.artifact_version_id)
         if artifact is not None:
             out["artifact"] = release_control.artifact_api(artifact)
@@ -517,6 +525,9 @@ async def revoke(request_id: str, body: dict = Body(default_factory=dict),
     out = await release_control.revoke_approval(
         session, task, user, request_id, note=str(body.get("note") or ""))
     if not out.get("ok"):
+        reason = out.get("reason", "")
+        if reason == "forbidden":
+            raise HTTPException(status_code=403, detail=out.get("error") or "无权撤回")
         raise HTTPException(status_code=409, detail=out.get("error") or "撤回没有成功")
     who = user.display_name or user.username
     owner = await session.get(Client, task.owner_client_id) if task.owner_client_id else None

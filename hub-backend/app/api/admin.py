@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 import uuid
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy import case, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -85,10 +85,58 @@ async def _me_payload(session: AsyncSession, user: User) -> dict:
 
 
 @router.post("/login")
-async def login(body: AdminLogin, session: AsyncSession = Depends(get_session)):
+async def login(body: AdminLogin, session: AsyncSession = Depends(get_session),
+                request: Request = None):
+    # #637: Rate limiting for admin login - 5 failures per IP per 10 minutes
+    if request:
+        client_ip = request.client.host if request.client else "unknown"
+        fail_key = f"admin_login_fail:{client_ip}"
+        try:
+            import redis.asyncio as aioredis
+            r = aioredis.from_url("redis://localhost:6379")
+            count = await r.get(fail_key)
+            if count and int(count) >= 5:
+                ttl = await r.ttl(fail_key)
+                await r.close()
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"登录失败次数过多，请 {ttl} 秒后重试"
+                )
+        except (HTTPException, ImportError):
+            raise  # Re-raise HTTPException
+        except Exception:
+            pass  # No Redis available - skip rate limiting
+
     user = await client_access.find_login_user(session, body.user, legacy_lookup=rbac.get_user_by_username)
     if user is None or not user.is_active or user.account_deleted_at or not verify_password(body.pw, user.password_hash):
+        # Track failed login attempt
+        try:
+            import redis.asyncio as aioredis
+            r = aioredis.from_url("redis://localhost:6379")
+            client_ip = request.client.host if request and request.client else "unknown"
+            fail_key = f"admin_login_fail:{client_ip}"
+            pipe = r.pipeline()
+            pipe.incr(fail_key)
+            pipe.expire(fail_key, 600)  # 10 minutes
+            await pipe.execute()
+            await r.close()
+        except (HTTPException, ImportError):
+            raise  # Re-raise HTTPException
+        except Exception:
+            pass  # No Redis available
         raise HTTPException(status_code=401, detail="账号或密码不正确")
+    # Reset fail counter on successful login
+    if request:
+        try:
+            import redis.asyncio as aioredis
+            r = aioredis.from_url("redis://localhost:6379")
+            client_ip = request.client.host if request.client else "unknown"
+            fail_key = f"admin_login_fail:{client_ip}"
+            await r.delete(fail_key)
+            await r.close()
+        except Exception:
+            pass
+
     user.last_login_at = datetime.now(timezone.utc)
     await session.commit()
     return {"token": sign_token(user.id, user.auth_version),
@@ -277,6 +325,10 @@ async def create_user(
     if not body.orgId:
         raise HTTPException(status_code=400, detail="请为用户指定所属部门")
     await _assert_org_in_scope(session, user, body.orgId)
+    if body.roleId:
+        existing_role = await session.get(Role, body.roleId)
+        if existing_role is None:
+            raise HTTPException(status_code=400, detail="角色不存在")
     if await rbac.get_user_by_username(session, body.username):
         raise HTTPException(status_code=400, detail="用户名已存在")
     try:
@@ -307,6 +359,10 @@ async def update_user(
     await _assert_user_in_scope(session, user, target)
     if body.orgId is not None:
         await _assert_org_in_scope(session, user, body.orgId)
+    if body.roleId is not None:
+        existing_role = await session.get(Role, body.roleId)
+        if existing_role is None:
+            raise HTTPException(status_code=400, detail="角色不存在")
     if target.is_super and body.isActive is False:
         raise HTTPException(status_code=400, detail="不能停用超级管理员")
     was_active = bool(target.is_active)

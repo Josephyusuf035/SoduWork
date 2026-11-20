@@ -25,7 +25,7 @@ POLICY_PRODUCTION = "policy-system-production"
 
 _ACTIVE_ARTIFACT = {
     "candidate", "baselined", "reviewed", "approved", "merged", "tested",
-    "accepted", "released",
+    "accepted", "released", "uat_rejected",
 }
 _SPEC_KINDS = {"requirement"}
 
@@ -596,8 +596,13 @@ async def decide(session: AsyncSession, task: models.Task, actor, *, action: str
     if decision == "reject":
         req.status = "rejected"
         req.resolved_at = _now()
-        if action in ("baseline", "review", "uat"):
+        if action in ("baseline", "review"):
             artifact.state = "rejected"
+        elif action == "uat":
+            # #660: UAT rejection should not mark merged code as rejected,
+            # which permanently breaks the release chain.
+            # Use a separate state to allow forward remediation.
+            artifact.state = "uat_rejected"
         task_events.record(session, task.id, "release.rejected",
                            {"requestId": req.id, "versionId": artifact.id,
                             "action": action, "note": d.note}, actor=d.user_name)
@@ -733,6 +738,13 @@ async def revoke_approval(session: AsyncSession, task: models.Task, actor,
                           "merge": "reviewed"}.get(req.action)
         if rollback_state:
             artifact.state = rollback_state
+    # #663: Revoking review acceptance resets task done state and clears reviewed_at
+    if req.action == "review" and req.status == "revoked":
+        if task.status == "done":
+            task.status = "doing"  # Revert to in-progress state for rework
+        task.reviewed_at = None
+        task.reviewed_by = None
+        task.reviewed_by_name = None
     # Revoking review also cancels any automatically created merge request still pending.
     if req.action == "review" and artifact is not None:
         merge_req = (await session.execute(select(am.ApprovalRequest).where(

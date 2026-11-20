@@ -5,6 +5,8 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
 _QUALITY_RANK = {"unknown": 0, "estimated": 1, "reported": 2, "reconciled": 3}
+# Per-event reasonable cap: 100M tokens for any single counter input/output/etc.
+_MAX_PER_EVENT_TOKENS = 100_000_000
 
 
 def _number(value: Any) -> int:
@@ -16,6 +18,8 @@ def _number(value: Any) -> int:
         return 0
     if result > 9_223_372_036_854_775_807:
         raise ValueError('Usage counter exceeds the supported range')
+    if result > _MAX_PER_EVENT_TOKENS:
+        raise ValueError('单次用量上报不得超过 1 亿 token')
     return result
 
 
