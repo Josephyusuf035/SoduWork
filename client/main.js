@@ -295,6 +295,8 @@ const _fileOpen = _fileOpenModule.create({
   },
   identityOf: () => _sessionIdentity(app),
   ownerOf: require('./main/platform-connections/runtime.cjs').connectionScope,
+  // macOS can send files before ready, before the quit state below is initialized.
+  deferLaunch: files => app.isReady() && _quitRelaunch.deferLaunch(files),
 });
 
 
@@ -724,6 +726,7 @@ if (!gotTheLock) {
     app.on('activate', () => {
       /* Apply this activation behavior only on macOS. */
       if (process.platform === 'darwin') {
+        if (_quitRelaunch.deferLaunch()) return;
         if (BrowserWindow.getAllWindows().length === 0) _desktopOverlay.createWindow();
 
 
