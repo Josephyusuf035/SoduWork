@@ -87,8 +87,11 @@
   }
 
   function duration(start, end) {
-    if (!start) return '';
-    const seconds = Math.max(0, Math.round(((end || Date.now()) - start) / 1000));
+    if (!start || !end) return '';
+    const startMs = new Date(start).getTime();
+    const endMs = new Date(end).getTime();
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return '';
+    const seconds = Math.max(0, Math.round((endMs - startMs) / 1000));
     if (seconds < 60) return seconds + ' 秒';
     if (seconds < 3600) return Math.floor(seconds / 60) + ' 分钟';
     return (seconds / 3600).toFixed(1) + ' 小时';
@@ -503,6 +506,8 @@
   function nodeHtml(node, runId, current) {
     const state = String(node.state || '');
     const key = 'node:' + runId + ':' + String(node.key || '') + ':' + Number(node.attempt || 0);
+    // Keep running markup stable across polling refreshes.
+    const elapsed = node.startedAt && (node.finishedAt ? duration(node.startedAt, node.finishedAt) : '进行中');
     /*
      * Expand the selected node by default, then preserve manual disclosure choices across
      * polling refreshes.
@@ -512,11 +517,7 @@
       '<summary><i class="tfd-node-dot"></i><span><b>' + esc(node.name || node.key || '流程节点') + '</b><small>' +
         esc(nodeText(node.kind || node.type)) + '</small></span><em class="tfd-state">' + esc(stateText(state)) + '</em>' +
         (node.attempt > 1 ? '<em>第 ' + Number(node.attempt) + ' 轮</em>' : '') +
-        /*
-         * Avoid Date.now() in running markup so polling does not replace unchanged content. Show
-         * fixed elapsed time after completion.
-         */
-        (node.startedAt ? '<em>' + esc(node.finishedAt ? duration(node.startedAt, node.finishedAt) : '进行中') + '</em>' : '') +
+        (elapsed ? '<em>' + esc(elapsed) + '</em>' : '') +
         '<em>' + Number((node.evidence || []).length) + ' 条证据</em><svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg></summary>' +
       executorHtml(node) + TaskTraceExecutionDetails.handoffHtml(node, { esc }) +
       TaskTraceExecutionDetails.failureHtml(node, { esc, errorText }) +
