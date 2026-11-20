@@ -143,6 +143,10 @@ jobs:
       - run: npm test
         if: runner.os == 'Windows'
         working-directory: client
+      - name: Verify library storage under long Windows data directories
+        if: runner.os == 'Windows'
+        run: .venv/Scripts/python.exe -m unittest -v test_library_storage_long_paths
+        working-directory: hub-backend
 
   runner-compatibility:
     name: Runner TLS and process cleanup (${{ matrix.os }})

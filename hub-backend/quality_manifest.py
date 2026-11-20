@@ -416,6 +416,7 @@ RELEASE_SMOKES = tuple(sorted((
     "test_account_privacy.py",
     "test_device_connections.py",
     "test_account_mail.py",
+    "test_library_storage_long_paths.py",
     "test_gitlab_auth.py",
     "test_gitlab_repository_issues.py",
     "test_github_repository_issues.py",
