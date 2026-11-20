@@ -87,6 +87,8 @@ function describe(value, afterToolResult = false) {
         '；请检查供应商账单、API Key 类型和接口地址';
     } else if (outputLimit) {
       publicText = OUTPUT_LIMIT_MESSAGE;
+    } else if ([400, 422].includes(status) && error?.code === 'thinking_disabled_unsupported') {
+      publicText = '该模型不支持关闭思考；请在模型高级设置把“思考能力”改为“始终开启”后重试';
     } else if (/context_length_exceeded|context length exceeded|prompt (?:is )?too long/i.test(combined)) {
       publicText = '当前上下文超过模型容量，历史和本轮输入已保留';
     } else if (IMAGE_REJECTION_RE.test(combined)) {

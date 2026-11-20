@@ -29,6 +29,25 @@ test('output-budget rejections retain actionable safe diagnostics through local 
   }
 });
 
+test('chat shows the thinking setting for classified Hub errors and SDK stream errors', () => {
+  const hint = '该模型不支持关闭思考；请在模型高级设置把“思考能力”改为“始终开启”后重试';
+  for (const status of [400, 422]) {
+    const error = { type: 'soduwork_proxy_error', status, code: 'thinking_disabled_unsupported', message: secretBody };
+    const expected = hint + '（HTTP ' + status + '）';
+    assert.equal(errors.forDisplay({ error }), expected);
+    // Pi serializes a direct HTTP error, but only retains the Hub message for SSE.
+    for (const [errorMessage, display] of [[status + ': ' + JSON.stringify(error), expected], [hint, hint]]) {
+      const acc = stream.create();
+      acc.push({ type: 'message_end', message: { role: 'assistant', stopReason: 'error', errorMessage } });
+      assert.equal(acc.uiSnapshot().completion.error, display);
+    }
+  }
+  assert.equal(errors.forDisplay({ error: { status: 400, code: 'InvalidParameter', message: 'thinking.type' } }),
+    '模型服务返回了暂时无法处理的错误（HTTP 400）');
+  assert.equal(errors.forDisplay({ error: { status: 401, code: 'thinking_disabled_unsupported' } }),
+    '模型服务拒绝了当前凭据或模型权限（HTTP 401）');
+});
+
 test('a request transformed to omit the tool result cannot report a tool continuation', async () => {
   const phase = require('../main/pi-session/model-request-phase.cjs');
   let dispatch, wire;

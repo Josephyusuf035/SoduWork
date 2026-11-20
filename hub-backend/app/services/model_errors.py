@@ -18,6 +18,16 @@ def output_limit_exceeded(value) -> bool:
                 or OUTPUT_LIMIT_MESSAGE in raw)
 
 
+THINKING_DISABLED_MESSAGE = "该模型不支持关闭思考；请在模型高级设置把“思考能力”改为“始终开启”后重试"
+THINKING_DISABLED_RE = re.compile(
+    r"thinking(?:\.type| type)?[^.\n]{0,40}disabled[^.\n]{0,40}not supported", re.I)
+
+
+def thinking_disabled_unsupported(value) -> bool:
+    """Recognize a provider rejecting disabled thinking before leaking its payload."""
+    return bool(THINKING_DISABLED_RE.search(str(value or "")[:16000]))
+
+
 def billing_diagnostic(value) -> dict | None:
     """Keep only recognized billing codes, never provider text or arbitrary fields."""
     payload = value if isinstance(value, dict) else None
@@ -86,6 +96,8 @@ def public_failure(value) -> str:
     suffix = f"（HTTP {status}）" if status else ""
     if status in (0, 400, 422) and output_limit_exceeded(raw):
         return OUTPUT_LIMIT_MESSAGE + suffix
+    if status in (0, 400, 422) and thinking_disabled_unsupported(raw):
+        return THINKING_DISABLED_MESSAGE + suffix
     if status == 404:
         return "模型服务地址或模型不存在" + suffix + "；请切换可用模型，或联系管理员核对服务地址与模型名称。"
     if status == 403:
