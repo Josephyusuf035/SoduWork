@@ -1602,3 +1602,14 @@ test('automatic bundle library actions use the same pinned files without deletin
   await new Promise(setImmediate);
   assert.equal(saved.length,1);
 });
+
+test('the automatic ZIP download is available without inflating the file count', async () => {
+  const f = fixture({listAttachments: async () => ['a.csv', 'b.md', 'check.py'].map(filename => ({
+    id: filename, filename, role: 'output', sourceRef: 'conversation:current',
+  }))});
+  await f.api.open('file-count');
+  const html = f.active().querySelector('#rqAttachments').innerHTML;
+  assert.match(html, /交付物 · 3 份/);
+  assert.match(html, /data-rq-bundle-download/);
+  assert.match(html, /data-rq-download="check\.py"/);
+});

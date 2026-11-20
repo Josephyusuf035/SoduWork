@@ -839,8 +839,8 @@
             .replace('data-rq-bundle-library=', bundleIds + ' data-rq-bundle-library=')
           : LibraryTransfer.button(libraryFile(file), '', 'data-rq-library')) : '') + '</div></div>';
     };
-    const section = (className, key, title, items, hint) => items.length
-      ? '<details class="rq-material-group ' + className + '" data-rq-material-group="' + esc(key) + '"><summary>' + esc(title) + ' · ' + items.length + ' 份<small>' + esc(hint) + '</small></summary>' + items.map(materialRow).join('') + '</details>'
+    const section = (className, key, title, items, hint, count = items.length) => items.length
+      ? '<details class="rq-material-group ' + className + '" data-rq-material-group="' + esc(key) + '"><summary>' + esc(title) + ' · ' + count + ' 份<small>' + esc(hint) + '</small></summary>' + items.map(materialRow).join('') + '</details>'
       : '';
     const input = current.filter(file => String(file.role || '') === 'input');
     const categoryOf = file => String(file.category || file.evidenceMeta?.category || '');
@@ -860,7 +860,7 @@
     const archive = archived.length ? '<details class="rq-material-group rq-material-archive"><summary>历史轮次 · ' + archived.length + ' 份<small>历史交付与未通过校验的文件，仅供追溯</small></summary>' + archived.map(materialRow).join('') + '</details>' : '';
     node.innerHTML = section('rq-material-input', 'input', '需求资料', [...input, ...other], '创建需求时提供的原始资料') +
       section('rq-material-evidence', 'evidence', '过程证据', evidence, '截图、验证记录和执行过程材料') +
-      section('rq-material-output', 'output', '交付物', [...autoBundle, ...storedBundles, ...deliverables], '仅包含本轮交付文件') +
+      section('rq-material-output', 'output', '交付物', [...autoBundle, ...storedBundles, ...deliverables], '仅包含本轮交付文件', outputs.length) +
       (autoBundle.length ? '<p data-rq-bundle-status role="status" aria-live="polite" hidden></p>' : '') + archive +
       (rework.length ? '<details class="rq-material-group rq-material-rework" data-rq-material-group="rework"><summary>返修参考资料 · ' + rework.length + ' 个<small>仅供返修使用，不计入交付产物</small></summary>' +
         rework.map(materialRow).join('') + '</details>' : '') || '<p>暂无材料</p>';
